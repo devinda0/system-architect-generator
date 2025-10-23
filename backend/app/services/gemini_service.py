@@ -6,13 +6,22 @@ with LangChain integration, supporting both Pro and Flash models.
 """
 
 import logging
+import time
 from typing import Optional, List, Dict, Any
+from datetime import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from app.config.gemini_config import GeminiConfig, get_config
 from app.utils.api_key_manager import GoogleAPIKeyManager
 from app.utils.retry_handler import RetryHandler, RetryConfig, RetryableError
+from app.utils.rate_limiter import (
+    RateLimiter,
+    QuotaManager,
+    QuotaConfig,
+    RateLimitExceeded,
+    QuotaExceeded,
+)
 from app.exceptions.gemini_exceptions import (
     GeminiError,
     GeminiConfigError,
@@ -43,6 +52,8 @@ class GeminiService:
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         api_key: Optional[str] = None,
+        enable_rate_limiting: bool = True,
+        enable_quota_management: bool = True,
     ):
         """
         Initialize Gemini service.
@@ -52,6 +63,8 @@ class GeminiService:
             temperature: Temperature for randomness (0.0-1.0)
             max_tokens: Maximum output tokens
             api_key: Google API key (uses env var if not provided)
+            enable_rate_limiting: Enable rate limiting (default: True)
+            enable_quota_management: Enable quota management (default: True)
             
         Raises:
             GeminiError: If initialization fails
@@ -87,6 +100,23 @@ class GeminiService:
             max_wait_time=self.config.RETRY_MAX_WAIT_SECONDS,
         )
         self.retry_handler = RetryHandler(retry_config)
+        
+        # Initialize rate limiter
+        self.enable_rate_limiting = enable_rate_limiting
+        if enable_rate_limiting:
+            self.rate_limiter = RateLimiter(
+                requests_per_minute=self.config.REQUESTS_PER_MINUTE
+            )
+            logger.info("Rate limiting enabled")
+        
+        # Initialize quota manager
+        self.enable_quota_management = enable_quota_management
+        if enable_quota_management:
+            quota_config = QuotaConfig(
+                requests_per_minute=self.config.REQUESTS_PER_MINUTE
+            )
+            self.quota_manager = QuotaManager(config=quota_config)
+            logger.info("Quota management enabled")
         
         # Initialize LangChain ChatGoogleGenerativeAI
         self._client = None
@@ -143,7 +173,40 @@ class GeminiService:
         Raises:
             GeminiError: If generation fails
         """
+        start_time = time.time()
+        request_id = f"{datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        
+        logger.info(
+            f"[{request_id}] Starting generation - model={self.model}, "
+            f"prompt_length={len(prompt)}, temperature={temperature or self.temperature}"
+        )
+        
         try:
+            # Apply rate limiting
+            if self.enable_rate_limiting:
+                try:
+                    self.rate_limiter.acquire()
+                    logger.debug(f"[{request_id}] Rate limit check passed")
+                except RateLimitExceeded as e:
+                    logger.warning(f"[{request_id}] Rate limit exceeded: {e}")
+                    raise GeminiRateLimitError(
+                        f"Rate limit exceeded. Retry after {e.retry_after:.2f} seconds",
+                        original_error=e
+                    )
+            
+            # Check quota
+            if self.enable_quota_management:
+                try:
+                    estimated_tokens = max_tokens or self.max_tokens
+                    self.quota_manager.check_and_increment(tokens=estimated_tokens)
+                    logger.debug(f"[{request_id}] Quota check passed")
+                except QuotaExceeded as e:
+                    logger.warning(f"[{request_id}] Quota exceeded: {e}")
+                    raise GeminiRateLimitError(
+                        f"Quota exceeded: {e.quota_type}",
+                        original_error=e
+                    )
+            
             messages = self._prepare_messages(prompt, system_prompt)
             
             # Update client if temperature or max_tokens differ
@@ -153,18 +216,37 @@ class GeminiService:
                 self._client.max_tokens = max_tokens or self.max_tokens
             
             # Execute with retry
+            logger.debug(f"[{request_id}] Sending request to Gemini API")
             response = self.retry_handler.execute_with_retry(
                 self._client.invoke,
                 messages
             )
             
+            elapsed_time = time.time() - start_time
+            response_length = len(response.content) if response.content else 0
+            
+            logger.info(
+                f"[{request_id}] Generation completed - "
+                f"response_length={response_length}, "
+                f"elapsed_time={elapsed_time:.2f}s"
+            )
+            
             return response.content
         
+        except (GeminiRateLimitError, GeminiError):
+            # Re-raise known errors
+            raise
         except RetryableError as e:
-            logger.error(f"Retryable error during generation: {e}")
+            elapsed_time = time.time() - start_time
+            logger.error(
+                f"[{request_id}] Retryable error after {elapsed_time:.2f}s: {e}"
+            )
             raise GeminiAPIError(f"Generation failed after retries: {e}", original_error=e)
         except Exception as e:
-            logger.error(f"Error during generation: {e}")
+            elapsed_time = time.time() - start_time
+            logger.error(
+                f"[{request_id}] Error during generation after {elapsed_time:.2f}s: {e}"
+            )
             # Try to map to specific exception types
             error_str = str(e).lower()
             if "rate limit" in error_str or "429" in error_str:
@@ -293,6 +375,36 @@ class GeminiService:
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "request_timeout": self.config.REQUEST_TIMEOUT_SECONDS,
+        }
+    
+    def get_quota_stats(self) -> Dict[str, Any]:
+        """
+        Get current quota usage statistics.
+        
+        Returns:
+            dict: Quota statistics
+        """
+        if not self.enable_quota_management:
+            return {"enabled": False}
+        
+        stats = self.quota_manager.get_usage_stats()
+        stats["enabled"] = True
+        return stats
+    
+    def get_rate_limit_info(self) -> Dict[str, Any]:
+        """
+        Get rate limiter information.
+        
+        Returns:
+            dict: Rate limit information
+        """
+        if not self.enable_rate_limiting:
+            return {"enabled": False}
+        
+        return {
+            "enabled": True,
+            "current_rate": self.rate_limiter.get_current_rate(),
+            "limit": self.config.REQUESTS_PER_MINUTE,
         }
     
     def get_retry_history(self) -> List[dict]:
