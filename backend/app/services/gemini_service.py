@@ -9,16 +9,20 @@ import logging
 from typing import Optional, List, Dict, Any
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-from app.config.gemini_config import GeminiConfig
+
+from app.config.gemini_config import GeminiConfig, get_config
 from app.utils.api_key_manager import GoogleAPIKeyManager
 from app.utils.retry_handler import RetryHandler, RetryConfig, RetryableError
+from app.exceptions.gemini_exceptions import (
+    GeminiError,
+    GeminiConfigError,
+    GeminiAPIError,
+    GeminiRateLimitError,
+    GeminiTimeoutError,
+    GeminiAuthenticationError,
+)
 
 logger = logging.getLogger(__name__)
-
-
-class GeminiServiceError(Exception):
-    """Base exception for Gemini service errors."""
-    pass
 
 
 class GeminiService:
@@ -50,14 +54,14 @@ class GeminiService:
             api_key: Google API key (uses env var if not provided)
             
         Raises:
-            GeminiServiceError: If initialization fails
+            GeminiError: If initialization fails
         """
-        self.config = GeminiConfig()
+        self.config = get_config()
         
         # Initialize API key manager
         if not api_key:
             if not GoogleAPIKeyManager.init_from_env():
-                raise GeminiServiceError(
+                raise GeminiConfigError(
                     "Failed to initialize Google API key. "
                     "Please set GOOGLE_API_KEY environment variable."
                 )
@@ -106,7 +110,7 @@ class GeminiService:
             logger.debug(f"LangChain client initialized for model: {self.model}")
         except Exception as e:
             logger.error(f"Failed to initialize LangChain client: {e}")
-            raise GeminiServiceError(f"Client initialization failed: {e}")
+            raise GeminiConfigError(f"Client initialization failed: {e}", original_error=e)
     
     def _is_valid_model(self, model: str) -> bool:
         """Check if the model name is valid."""
@@ -137,7 +141,7 @@ class GeminiService:
             str: Generated text
             
         Raises:
-            GeminiServiceError: If generation fails
+            GeminiError: If generation fails
         """
         try:
             messages = self._prepare_messages(prompt, system_prompt)
@@ -158,10 +162,19 @@ class GeminiService:
         
         except RetryableError as e:
             logger.error(f"Retryable error during generation: {e}")
-            raise GeminiServiceError(f"Generation failed after retries: {e}")
+            raise GeminiAPIError(f"Generation failed after retries: {e}", original_error=e)
         except Exception as e:
             logger.error(f"Error during generation: {e}")
-            raise GeminiServiceError(f"Generation failed: {e}")
+            # Try to map to specific exception types
+            error_str = str(e).lower()
+            if "rate limit" in error_str or "429" in error_str:
+                raise GeminiRateLimitError(original_error=e)
+            elif "timeout" in error_str:
+                raise GeminiTimeoutError(original_error=e)
+            elif "authentication" in error_str or "401" in error_str or "403" in error_str:
+                raise GeminiAuthenticationError(original_error=e)
+            else:
+                raise GeminiAPIError(f"Generation failed: {e}", original_error=e)
     
     def generate_streaming(
         self,
@@ -179,7 +192,7 @@ class GeminiService:
             str: Streamed text chunks
             
         Raises:
-            GeminiServiceError: If streaming fails
+            GeminiError: If streaming fails
         """
         try:
             messages = self._prepare_messages(prompt, system_prompt)
@@ -194,7 +207,7 @@ class GeminiService:
         
         except Exception as e:
             logger.error(f"Error during streaming: {e}")
-            raise GeminiServiceError(f"Streaming failed: {e}")
+            raise GeminiAPIError(f"Streaming failed: {e}", original_error=e)
     
     def batch_generate(
         self,
@@ -212,7 +225,7 @@ class GeminiService:
             List[str]: Generated responses
             
         Raises:
-            GeminiServiceError: If batch generation fails
+            GeminiError: If batch generation fails
         """
         responses = []
         
@@ -242,10 +255,10 @@ class GeminiService:
             max_tokens: Max tokens override
             
         Raises:
-            GeminiServiceError: If model change fails
+            GeminiConfigError: If model change fails
         """
         if not self._is_valid_model(model):
-            raise GeminiServiceError(f"Invalid model: {model}")
+            raise GeminiConfigError(f"Invalid model: {model}")
         
         self.model = model
         self.temperature = temperature or self.config.TEMPERATURE_DEFAULT
@@ -275,8 +288,8 @@ class GeminiService:
         """
         return {
             "model": self.model,
-            "is_flash": self.config.is_flash_model(self.model),
-            "is_pro": self.config.is_pro_model(self.model),
+            "is_flash": GeminiConfig.is_flash_model(self.model),
+            "is_pro": GeminiConfig.is_pro_model(self.model),
             "temperature": self.temperature,
             "max_tokens": self.max_tokens,
             "request_timeout": self.config.REQUEST_TIMEOUT_SECONDS,

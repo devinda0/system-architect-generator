@@ -7,6 +7,8 @@ It manages environment variables, API credentials, and model configurations.
 
 import os
 from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
 from dotenv import load_dotenv
 import logging
 
@@ -16,67 +18,125 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 
-class GeminiConfig:
+class GeminiConfig(BaseSettings):
     """
-    Configuration class for Google Gemini API.
+    Configuration class for Google Gemini API using Pydantic Settings.
     
     This class manages all Gemini API configurations including:
     - API key management
     - Model selection
     - Temperature and other parameters
     - Retry and timeout settings
+    
+    All settings can be overridden via environment variables.
     """
     
-    # API Configuration
-    GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
     
-    # Available Models
-    GEMINI_PRO_MODEL = "gemini-pro"
-    GEMINI_FLASH_MODEL = "gemini-1.5-flash"
-    GEMINI_PRO_VISION_MODEL = "gemini-pro-vision"
+    # API Configuration
+    GOOGLE_API_KEY: str = Field(
+        default="",
+        description="Google Gemini API Key"
+    )
+    
+    # Available Models (as class constants)
+    GEMINI_PRO_MODEL: str = "gemini-pro"
+    GEMINI_FLASH_MODEL: str = "gemini-1.5-flash"
+    GEMINI_PRO_VISION_MODEL: str = "gemini-pro-vision"
     
     # Default Model
-    DEFAULT_MODEL: str = GEMINI_FLASH_MODEL
+    DEFAULT_MODEL: str = Field(
+        default="gemini-1.5-flash",
+        description="Default Gemini model to use"
+    )
     
     # Model Temperatures (controls randomness)
-    TEMPERATURE_DEFAULT: float = 0.7
+    TEMPERATURE_DEFAULT: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Default temperature for model output"
+    )
     TEMPERATURE_DETERMINISTIC: float = 0.0
     TEMPERATURE_CREATIVE: float = 1.0
     
     # Model Parameters
-    MAX_TOKENS_DEFAULT: int = 2048
-    MAX_TOKENS_MAX: int = 4096
+    MAX_TOKENS_DEFAULT: int = Field(
+        default=2048,
+        gt=0,
+        description="Default maximum tokens for output"
+    )
+    MAX_TOKENS_MAX: int = Field(
+        default=4096,
+        gt=0,
+        description="Maximum allowed tokens"
+    )
     
     # Retry Configuration
-    MAX_RETRIES: int = 3
-    RETRY_DELAY_SECONDS: float = 1.0
-    RETRY_BACKOFF_FACTOR: float = 2.0
-    RETRY_MAX_WAIT_SECONDS: float = 60.0
+    MAX_RETRIES: int = Field(
+        default=3,
+        ge=0,
+        description="Maximum number of retry attempts"
+    )
+    RETRY_DELAY_SECONDS: float = Field(
+        default=1.0,
+        gt=0,
+        description="Initial retry delay in seconds"
+    )
+    RETRY_BACKOFF_FACTOR: float = Field(
+        default=2.0,
+        gt=1.0,
+        description="Exponential backoff factor"
+    )
+    RETRY_MAX_WAIT_SECONDS: float = Field(
+        default=60.0,
+        gt=0,
+        description="Maximum wait time between retries"
+    )
     
     # Timeout Configuration
-    REQUEST_TIMEOUT_SECONDS: int = 30
+    REQUEST_TIMEOUT_SECONDS: int = Field(
+        default=30,
+        gt=0,
+        description="Request timeout in seconds"
+    )
     
     # Rate Limiting
-    REQUESTS_PER_MINUTE: int = 60
+    REQUESTS_PER_MINUTE: int = Field(
+        default=60,
+        gt=0,
+        description="Maximum requests per minute"
+    )
     
+    @field_validator("GOOGLE_API_KEY")
     @classmethod
-    def validate_api_key(cls) -> bool:
+    def validate_api_key_format(cls, v: str) -> str:
+        """Validate API key format if provided."""
+        if v and len(v) < 20:
+            logger.warning("GOOGLE_API_KEY appears to be invalid (too short)")
+        return v
+    
+    def validate_api_key(self) -> bool:
         """
         Validate that the API key is configured.
         
         Returns:
             bool: True if API key is configured, False otherwise
         """
-        if not cls.GOOGLE_API_KEY:
+        if not self.GOOGLE_API_KEY:
             logger.warning("GOOGLE_API_KEY environment variable is not set")
             return False
-        if len(cls.GOOGLE_API_KEY) < 20:
+        if len(self.GOOGLE_API_KEY) < 20:
             logger.warning("GOOGLE_API_KEY appears to be invalid (too short)")
             return False
         return True
     
-    @classmethod
-    def get_api_key(cls) -> str:
+    def get_api_key(self) -> str:
         """
         Get the API key with validation.
         
@@ -86,15 +146,14 @@ class GeminiConfig:
         Raises:
             ValueError: If API key is not configured
         """
-        if not cls.GOOGLE_API_KEY:
+        if not self.GOOGLE_API_KEY:
             raise ValueError(
                 "GOOGLE_API_KEY environment variable is not set. "
                 "Please add it to your .env file."
             )
-        return cls.GOOGLE_API_KEY
+        return self.GOOGLE_API_KEY
     
-    @classmethod
-    def set_api_key(cls, api_key: str) -> None:
+    def set_api_key(self, api_key: str) -> None:
         """
         Set the API key programmatically.
         
@@ -106,13 +165,12 @@ class GeminiConfig:
         """
         if not api_key or len(api_key) < 20:
             raise ValueError("Invalid API key format")
-        cls.GOOGLE_API_KEY = api_key
+        self.GOOGLE_API_KEY = api_key
         os.environ["GOOGLE_API_KEY"] = api_key
         logger.info("API key updated successfully")
     
-    @classmethod
     def get_model_config(
-        cls,
+        self,
         model: Optional[str] = None,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None
@@ -129,14 +187,13 @@ class GeminiConfig:
             dict: Configuration dictionary for the model
         """
         return {
-            "model": model or cls.DEFAULT_MODEL,
-            "temperature": temperature if temperature is not None else cls.TEMPERATURE_DEFAULT,
-            "max_tokens": max_tokens or cls.MAX_TOKENS_DEFAULT,
-            "request_timeout": cls.REQUEST_TIMEOUT_SECONDS,
+            "model": model or self.DEFAULT_MODEL,
+            "temperature": temperature if temperature is not None else self.TEMPERATURE_DEFAULT,
+            "max_tokens": max_tokens or self.MAX_TOKENS_DEFAULT,
+            "request_timeout": self.REQUEST_TIMEOUT_SECONDS,
         }
     
-    @classmethod
-    def get_retry_config(cls) -> dict:
+    def get_retry_config(self) -> dict:
         """
         Get retry configuration.
         
@@ -144,14 +201,14 @@ class GeminiConfig:
             dict: Retry configuration parameters
         """
         return {
-            "max_retries": cls.MAX_RETRIES,
-            "retry_delay": cls.RETRY_DELAY_SECONDS,
-            "backoff_factor": cls.RETRY_BACKOFF_FACTOR,
-            "max_wait": cls.RETRY_MAX_WAIT_SECONDS,
+            "max_retries": self.MAX_RETRIES,
+            "retry_delay": self.RETRY_DELAY_SECONDS,
+            "backoff_factor": self.RETRY_BACKOFF_FACTOR,
+            "max_wait": self.RETRY_MAX_WAIT_SECONDS,
         }
     
-    @classmethod
-    def is_flash_model(cls, model: str) -> bool:
+    @staticmethod
+    def is_flash_model(model: str) -> bool:
         """
         Check if the specified model is Flash.
         
@@ -163,8 +220,8 @@ class GeminiConfig:
         """
         return "flash" in model.lower()
     
-    @classmethod
-    def is_pro_model(cls, model: str) -> bool:
+    @staticmethod
+    def is_pro_model(model: str) -> bool:
         """
         Check if the specified model is Pro.
         
@@ -177,5 +234,9 @@ class GeminiConfig:
         return "pro" in model.lower() and "flash" not in model.lower()
 
 
-# Singleton instance
-gemini_config = GeminiConfig()
+# Singleton instance for easy access
+def get_config() -> GeminiConfig:
+    """Get or create the Gemini configuration singleton."""
+    if not hasattr(get_config, "_instance"):
+        get_config._instance = GeminiConfig()
+    return get_config._instance
