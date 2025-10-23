@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from app.api.health import router as healt_router
 from app.api.user import router as user_router
+from app.api.gemini import router as gemini_router
 
 app = FastAPI(
     title="System Architect Generator - API",
@@ -22,6 +23,7 @@ app.add_middleware(
 )
 app.include_router(healt_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
+app.include_router(gemini_router, prefix="/api")
 
 if __name__ == "__main__":
     # Run with: python main.py
