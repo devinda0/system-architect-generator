@@ -53,6 +53,14 @@ class DuplicateKeyError(MongoDBException):
         super().__init__(message, details)
 
 
+class DocumentAlreadyExistsError(MongoDBException):
+    """Raised when attempting to create a document that already exists."""
+    
+    def __init__(self, collection: str, identifier: str, details: Optional[Any] = None):
+        message = f"Document already exists in collection '{collection}' with identifier: {identifier}"
+        super().__init__(message, details)
+
+
 class ValidationError(MongoDBException):
     """Raised when document validation fails."""
     
