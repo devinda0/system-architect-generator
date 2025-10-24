@@ -7,6 +7,7 @@ It manages connection pooling, environment variables, and database settings.
 
 import os
 from typing import Optional
+from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, field_validator
 from dotenv import load_dotenv
@@ -150,17 +151,26 @@ class MongoDBConfig(BaseSettings):
         Returns:
             Complete MongoDB connection URI with credentials if provided
         """
+        # If URL already contains credentials (has @ symbol), use it as-is
+        if "@" in self.MONGODB_URL:
+            return self.MONGODB_URL
+            
+        # Otherwise, add credentials if provided
         if self.MONGODB_USERNAME and self.MONGODB_PASSWORD:
+            # URL-encode credentials according to RFC 3986
+            username = quote_plus(self.MONGODB_USERNAME)
+            password = quote_plus(self.MONGODB_PASSWORD)
+            
             # Replace the connection string with authenticated version
             if "mongodb://" in self.MONGODB_URL:
                 return self.MONGODB_URL.replace(
                     "mongodb://",
-                    f"mongodb://{self.MONGODB_USERNAME}:{self.MONGODB_PASSWORD}@"
+                    f"mongodb://{username}:{password}@"
                 )
             elif "mongodb+srv://" in self.MONGODB_URL:
                 return self.MONGODB_URL.replace(
                     "mongodb+srv://",
-                    f"mongodb+srv://{self.MONGODB_USERNAME}:{self.MONGODB_PASSWORD}@"
+                    f"mongodb+srv://{username}:{password}@"
                 )
         return self.MONGODB_URL
     
