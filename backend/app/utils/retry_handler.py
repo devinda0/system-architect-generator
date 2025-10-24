@@ -77,8 +77,8 @@ class ServiceUnavailableError(RetryableError):
     pass
 
 
-class TimeoutError(RetryableError):
-    """Timeout error."""
+class RequestTimeoutError(RetryableError):
+    """Request timeout error."""
     pass
 
 
@@ -100,9 +100,9 @@ class RetryHandler:
         RetryableError,
         RateLimitError,
         ServiceUnavailableError,
-        TimeoutError,
+        RequestTimeoutError,
         ConnectionError,
-        TimeoutError,
+        TimeoutError,  # Python's built-in TimeoutError
     )
     
     def __init__(self, config: Optional[RetryConfig] = None):
