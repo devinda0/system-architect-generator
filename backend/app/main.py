@@ -10,6 +10,11 @@ from app.api.user import router as user_router
 from app.api.gemini import router as gemini_router
 from app.config.logging_config import setup_logging
 from app.config.gemini_config import get_config
+from app.config.mongodb_config import (
+    connect_to_mongodb,
+    close_mongodb_connection,
+    check_mongodb_health
+)
 
 # Setup logging
 setup_logging(level="INFO")
@@ -51,6 +56,14 @@ async def startup_event():
     except Exception as e:
         logger.error(f"✗ Configuration error: {e}")
     
+    # Connect to MongoDB
+    try:
+        await connect_to_mongodb()
+        logger.info("✓ MongoDB connected successfully")
+    except Exception as e:
+        logger.error(f"✗ MongoDB connection error: {e}")
+        logger.warning("⚠ Application will continue without database. Some features may not work.")
+    
     logger.info("Application startup complete")
 
 
@@ -58,6 +71,15 @@ async def startup_event():
 async def shutdown_event():
     """Run on application shutdown."""
     logger.info("Shutting down System Architect Generator API...")
+    
+    # Close MongoDB connection
+    try:
+        await close_mongodb_connection()
+        logger.info("✓ MongoDB connection closed")
+    except Exception as e:
+        logger.error(f"✗ Error closing MongoDB connection: {e}")
+    
+    logger.info("Application shutdown complete")
 
 
 @app.get("/")
