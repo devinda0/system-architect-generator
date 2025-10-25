@@ -9,6 +9,7 @@ from app.api.health import router as health_router
 from app.api.user import router as user_router
 from app.api.gemini import router as gemini_router
 from app.api.design import router as design_router
+from app.api.projects import router as projects_router
 # from app.api.knowledge_base import router as knowledge_base_router  # Requires chromadb - install deps first
 from app.config.logging_config import setup_logging
 from app.config.gemini_config import get_config
@@ -41,6 +42,7 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api")
 app.include_router(user_router, prefix="/api")
 app.include_router(gemini_router, prefix="/api")
+app.include_router(projects_router)
 app.include_router(design_router)
 # app.include_router(knowledge_base_router, prefix="/api")  # Requires chromadb - install deps first
 

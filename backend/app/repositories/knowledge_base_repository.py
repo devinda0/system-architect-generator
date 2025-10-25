@@ -6,7 +6,7 @@ including CRUD operations and metadata management.
 """
 
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
@@ -63,8 +63,8 @@ class KnowledgeBaseRepository(BaseRepository):
             
             # Prepare document
             doc_dict = document.model_dump()
-            doc_dict["created_at"] = datetime.utcnow()
-            doc_dict["updated_at"] = datetime.utcnow()
+            doc_dict["created_at"] = datetime.now(UTC)
+            doc_dict["updated_at"] = datetime.now(UTC)
             
             # Insert document
             result = await self.collection.insert_one(doc_dict)
@@ -206,7 +206,7 @@ class KnowledgeBaseRepository(BaseRepository):
                 # Nothing to update
                 return await self.get_document_by_id(document_id)
             
-            update_dict["updated_at"] = datetime.utcnow()
+            update_dict["updated_at"] = datetime.now(UTC)
             
             result = await self.collection.find_one_and_update(
                 {"_id": ObjectId(document_id)},
@@ -344,8 +344,8 @@ class KnowledgeBaseRepository(BaseRepository):
             docs_to_insert = []
             for doc in documents:
                 doc_dict = doc.model_dump()
-                doc_dict["created_at"] = datetime.utcnow()
-                doc_dict["updated_at"] = datetime.utcnow()
+                doc_dict["created_at"] = datetime.now(UTC)
+                doc_dict["updated_at"] = datetime.now(UTC)
                 docs_to_insert.append(doc_dict)
             
             result = await self.collection.insert_many(docs_to_insert)

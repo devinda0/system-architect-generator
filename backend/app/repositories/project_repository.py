@@ -241,3 +241,28 @@ class ProjectRepository(BaseRepository[ProjectInDB]):
             limit=limit,
             sort=[("updated_at", -1)]
         )
+    
+    async def count_by_user(
+        self,
+        user_id: str,
+        status: Optional[str] = None
+    ) -> int:
+        """
+        Count projects for a specific user.
+        
+        Args:
+            user_id: User ID
+            status: Optional status filter
+            
+        Returns:
+            Count of projects
+        """
+        filter_query = {"user_id": user_id}
+        if status:
+            filter_query["status"] = status
+        
+        try:
+            return await self.collection.count_documents(filter_query)
+        except Exception as e:
+            logger.error(f"Error counting projects: {e}")
+            return 0
