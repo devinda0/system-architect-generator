@@ -9,6 +9,7 @@ Comprehensive tests for all repository methods including:
 """
 
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime
 from typing import Generator
@@ -42,15 +43,7 @@ from app.exceptions.mongodb_exceptions import (
 TEST_DB_NAME = "test_system_architect_generator"
 
 
-@pytest.fixture(scope="session")
-def event_loop() -> Generator:
-    """Create an event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest.fixture(scope="session")
+@pytest_asyncio.fixture(scope="function")
 async def test_database() -> AsyncIOMotorDatabase:
     """
     Create a test database connection.
@@ -64,45 +57,41 @@ async def test_database() -> AsyncIOMotorDatabase:
     
     yield database
     
-    # Cleanup: Drop the test database
-    await client.drop_database(TEST_DB_NAME)
+    # Cleanup: Drop all collections in the test database
+    collection_names = await database.list_collection_names()
+    for collection_name in collection_names:
+        await database[collection_name].drop()
     client.close()
 
 
-@pytest.fixture
-async def user_repository(test_database: AsyncIOMotorDatabase) -> UserRepository:
+@pytest_asyncio.fixture(scope="function")
+async def user_repository(test_database: AsyncIOMotorDatabase):
     """Create UserRepository instance for testing."""
     repo = UserRepository(test_database)
+    # Create unique index on email field
+    await repo.collection.create_index("email", unique=True)
     yield repo
-    # Cleanup: Clear the collection
-    await repo.collection.delete_many({})
 
 
-@pytest.fixture
-async def project_repository(test_database: AsyncIOMotorDatabase) -> ProjectRepository:
+@pytest_asyncio.fixture(scope="function")
+async def project_repository(test_database: AsyncIOMotorDatabase):
     """Create ProjectRepository instance for testing."""
     repo = ProjectRepository(test_database)
     yield repo
-    # Cleanup: Clear the collection
-    await repo.collection.delete_many({})
 
 
-@pytest.fixture
-async def design_repository(test_database: AsyncIOMotorDatabase) -> DesignRepository:
+@pytest_asyncio.fixture(scope="function")
+async def design_repository(test_database: AsyncIOMotorDatabase):
     """Create DesignRepository instance for testing."""
     repo = DesignRepository(test_database)
     yield repo
-    # Cleanup: Clear the collection
-    await repo.collection.delete_many({})
 
 
-@pytest.fixture
-async def feedback_repository(test_database: AsyncIOMotorDatabase) -> FeedbackRepository:
+@pytest_asyncio.fixture(scope="function")
+async def feedback_repository(test_database: AsyncIOMotorDatabase):
     """Create FeedbackRepository instance for testing."""
     repo = FeedbackRepository(test_database)
     yield repo
-    # Cleanup: Clear the collection
-    await repo.collection.delete_many({})
 
 
 # ==================== User Repository Tests ====================

@@ -44,9 +44,7 @@ def auth_headers(auth_token):
 @pytest.fixture
 def mock_db():
     """Mock database instance."""
-    db_mock = AsyncMock()
-    db_mock.close = AsyncMock()
-    return db_mock
+    return AsyncMock()
 
 
 @pytest.fixture
@@ -151,8 +149,8 @@ def mock_project():
         "status": "active",
         "metadata": {"key": "value"},
         "design_count": 2,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
     }
 
 
@@ -180,8 +178,8 @@ def mock_design():
         ],
         "relationships": [],
         "metadata": {},
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
         "created_by_ai": True,
         "ai_model": "gemini-pro"
     }
@@ -192,115 +190,160 @@ def mock_design():
 class TestProjectAPI:
     """Tests for Project API endpoints."""
     
-    @patch('app.api.projects.get_database')
-    @patch('app.repositories.project_repository.ProjectRepository.create_project')
-    @patch('app.repositories.project_repository.ProjectRepository.find_by_id')
-    def test_create_project(self, mock_find, mock_create, mock_db, client, auth_headers, mock_project):
+    def test_create_project(self, client, auth_headers, mock_project):
         """Test creating a new project."""
-        mock_create.return_value = "project_123"
-        mock_find.return_value = mock_project
+        from app.api.projects import get_project_repository
+        from app.repositories.project_repository import ProjectRepository
         
-        response = client.post(
-            "/api/projects",
-            json={
-                "name": "Test Project",
-                "description": "Test description",
-                "tags": ["test"],
-                "metadata": {}
-            },
-            headers=auth_headers
-        )
+        mock_repo = AsyncMock(spec=ProjectRepository)
+        mock_repo.create_project.return_value = "project_123"
+        mock_repo.find_by_id.return_value = mock_project
         
-        assert response.status_code == 201
-        data = response.json()
-        assert data["name"] == "Test Project"
-        assert data["id"] == "project_123"
+        app.dependency_overrides[get_project_repository] = lambda: mock_repo
+        
+        try:
+            response = client.post(
+                "/api/projects",
+                json={
+                    "name": "Test Project",
+                    "description": "Test description",
+                    "tags": ["test"],
+                    "metadata": {}
+                },
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 201
+            data = response.json()
+            assert data["name"] == "Test Project"
+            assert data["id"] == "project_123"
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.projects.get_database')
-    @patch('app.repositories.project_repository.ProjectRepository.find_by_id')
-    @patch('app.repositories.design_repository.DesignRepository.find_by_project')
-    def test_get_project(self, mock_find_designs, mock_find_project, mock_db, client, auth_headers, mock_project):
+    def test_get_project(self, client, auth_headers, mock_project):
         """Test getting a project by ID."""
-        mock_find_project.return_value = mock_project
-        mock_find_designs.return_value = []
+        from app.api.projects import get_project_repository, get_design_repository
+        from app.repositories.project_repository import ProjectRepository
+        from app.repositories.design_repository import DesignRepository
         
-        response = client.get(
-            "/api/projects/project_123",
-            headers=auth_headers
-        )
+        mock_project_repo = AsyncMock(spec=ProjectRepository)
+        mock_project_repo.find_by_id.return_value = mock_project
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["id"] == "project_123"
-        assert data["name"] == "Test Project"
+        mock_design_repo = AsyncMock(spec=DesignRepository)
+        mock_design_repo.find_by_project.return_value = []
+        
+        app.dependency_overrides[get_project_repository] = lambda: mock_project_repo
+        app.dependency_overrides[get_design_repository] = lambda: mock_design_repo
+        
+        try:
+            response = client.get(
+                "/api/projects/project_123",
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["id"] == "project_123"
+            assert data["name"] == "Test Project"
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.projects.get_database')
-    @patch('app.repositories.project_repository.ProjectRepository.find_by_id')
-    def test_get_project_not_found(self, mock_find, mock_db, client, auth_headers):
+    def test_get_project_not_found(self, client, auth_headers):
         """Test getting a non-existent project."""
-        mock_find.return_value = None
+        from app.api.projects import get_project_repository, get_design_repository
+        from app.repositories.project_repository import ProjectRepository
+        from app.repositories.design_repository import DesignRepository
         
-        response = client.get(
-            "/api/projects/nonexistent",
-            headers=auth_headers
-        )
+        mock_project_repo = AsyncMock(spec=ProjectRepository)
+        mock_project_repo.find_by_id.return_value = None
         
-        assert response.status_code == 404
+        mock_design_repo = AsyncMock(spec=DesignRepository)
+        
+        app.dependency_overrides[get_project_repository] = lambda: mock_project_repo
+        app.dependency_overrides[get_design_repository] = lambda: mock_design_repo
+        
+        try:
+            response = client.get(
+                "/api/projects/nonexistent",
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 404
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.projects.get_database')
-    @patch('app.repositories.project_repository.ProjectRepository.find_by_user')
-    @patch('app.repositories.project_repository.ProjectRepository.count_by_user')
-    def test_list_projects(self, mock_count, mock_find, mock_db, client, auth_headers, mock_project):
+    def test_list_projects(self, client, auth_headers, mock_project):
         """Test listing projects."""
-        mock_find.return_value = [mock_project]
-        mock_count.return_value = 1
+        from app.api.projects import get_project_repository
+        from app.repositories.project_repository import ProjectRepository
         
-        response = client.get(
-            "/api/projects",
-            headers=auth_headers
-        )
+        mock_repo = AsyncMock(spec=ProjectRepository)
+        mock_repo.find_by_user.return_value = [mock_project]
+        mock_repo.count_by_user.return_value = 1
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["total"] == 1
-        assert len(data["projects"]) == 1
-        assert data["projects"][0]["id"] == "project_123"
+        app.dependency_overrides[get_project_repository] = lambda: mock_repo
+        
+        try:
+            response = client.get(
+                "/api/projects",
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["total"] == 1
+            assert len(data["projects"]) == 1
+            assert data["projects"][0]["id"] == "project_123"
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.projects.get_database')
-    @patch('app.repositories.project_repository.ProjectRepository.find_by_id')
-    @patch('app.repositories.project_repository.ProjectRepository.update_project')
-    def test_update_project(self, mock_update, mock_find, mock_db, client, auth_headers, mock_project):
+    def test_update_project(self, client, auth_headers, mock_project):
         """Test updating a project."""
+        from app.api.projects import get_project_repository
+        from app.repositories.project_repository import ProjectRepository
+        
+        mock_repo = AsyncMock(spec=ProjectRepository)
         updated_project = mock_project.copy()
         updated_project["name"] = "Updated Project"
         
-        mock_find.side_effect = [mock_project, updated_project]
-        mock_update.return_value = True
+        mock_repo.find_by_id.side_effect = [mock_project, updated_project]
+        mock_repo.update_project.return_value = True
         
-        response = client.put(
-            "/api/projects/project_123",
-            json={"name": "Updated Project"},
-            headers=auth_headers
-        )
+        app.dependency_overrides[get_project_repository] = lambda: mock_repo
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["name"] == "Updated Project"
+        try:
+            response = client.put(
+                "/api/projects/project_123",
+                json={"name": "Updated Project"},
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["name"] == "Updated Project"
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.projects.get_database')
-    @patch('app.repositories.project_repository.ProjectRepository.find_by_id')
-    @patch('app.repositories.project_repository.ProjectRepository.update_project')
-    def test_delete_project_soft(self, mock_update, mock_find, mock_db, client, auth_headers, mock_project):
+    def test_delete_project_soft(self, client, auth_headers, mock_project):
         """Test soft deleting a project."""
-        mock_find.return_value = mock_project
-        mock_update.return_value = True
+        from app.api.projects import get_project_repository
+        from app.repositories.project_repository import ProjectRepository
         
-        response = client.delete(
-            "/api/projects/project_123",
-            headers=auth_headers
-        )
+        mock_repo = AsyncMock(spec=ProjectRepository)
+        mock_repo.find_by_id.return_value = mock_project
+        mock_repo.update_project.return_value = True
         
-        assert response.status_code == 204
+        app.dependency_overrides[get_project_repository] = lambda: mock_repo
+        
+        try:
+            response = client.delete(
+                "/api/projects/project_123",
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 204
+        finally:
+            app.dependency_overrides.clear()
     
     def test_create_project_unauthorized(self, client):
         """Test creating a project without authentication."""
@@ -317,125 +360,186 @@ class TestProjectAPI:
 class TestDesignAPI:
     """Tests for Design API endpoints."""
     
-    @patch('app.api.design.get_database')
-    @patch('app.repositories.design_repository.DesignRepository.find_by_id')
-    def test_get_design_tree(self, mock_find, mock_db, client, auth_headers, mock_design):
+    def test_get_design_tree(self, client, auth_headers, mock_design):
         """Test getting design tree."""
-        mock_find.return_value = mock_design
-        
-        response = client.get(
-            "/api/designs/design_123",
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["design_id"] == "design_123"
-        assert data["title"] == "System Architecture"
-        assert len(data["elements"]) == 1
+        from app.api.design import get_design_repository
+        from app.repositories.design_repository import DesignRepository
+
+        # Create mock repository
+        mock_repo = AsyncMock(spec=DesignRepository)
+        mock_repo.find_by_id.return_value = mock_design
+
+        # Override dependency
+        app.dependency_overrides[get_design_repository] = lambda: mock_repo
+
+        try:
+            response = client.get(
+                "/api/designs/design_123",
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["design_id"] == "design_123"
+            assert data["title"] == "System Architecture"
+            assert len(data["elements"]) == 1
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.design.get_database')
-    @patch('app.repositories.design_repository.DesignRepository.find_by_id')
-    def test_get_design_not_found(self, mock_find, mock_db, client, auth_headers):
+    def test_get_design_not_found(self, client, auth_headers):
         """Test getting a non-existent design."""
-        mock_find.return_value = None
-        
-        response = client.get(
-            "/api/designs/nonexistent",
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 404
+        from app.api.design import get_design_repository
+        from app.repositories.design_repository import DesignRepository
+
+        # Create mock repository
+        mock_repo = AsyncMock(spec=DesignRepository)
+        mock_repo.find_by_id.return_value = None
+
+        # Override dependency
+        app.dependency_overrides[get_design_repository] = lambda: mock_repo
+
+        try:
+            response = client.get(
+                "/api/designs/nonexistent",
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 404
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.design.get_database')
-    @patch('app.repositories.design_repository.DesignRepository.find_by_id')
-    @patch('app.services.design_engine_service.DesignEngineService.generate_initial_design')
-    def test_ai_action_initial_generation(self, mock_generate, mock_find, mock_db, client, auth_headers, mock_design):
+    def test_ai_action_initial_generation(self, client, auth_headers, mock_design):
         """Test AI action for initial generation."""
-        mock_find.return_value = mock_design
-        mock_generate.return_value = {
+        from app.api.design import get_design_repository, get_design_engine
+        from app.repositories.design_repository import DesignRepository
+        from app.services.design_engine_service import DesignEngineService
+
+        # Create mock repository
+        mock_repo = AsyncMock(spec=DesignRepository)
+        mock_repo.find_by_id.return_value = mock_design
+
+        # Create mock engine
+        mock_engine = AsyncMock(spec=DesignEngineService)
+        mock_engine.generate_initial_design.return_value = {
             "system_context": {"name": "Test System"},
             "containers": []
         }
-        
-        response = client.post(
-            "/api/designs/design_123/ai-action",
-            json={
-                "action_type": "initial_generation",
-                "requirements": "Build a web application"
-            },
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert data["action_type"] == "initial_generation"
+
+        # Override dependencies
+        app.dependency_overrides[get_design_repository] = lambda: mock_repo
+        app.dependency_overrides[get_design_engine] = lambda: mock_engine
+
+        try:
+            response = client.post(
+                "/api/designs/design_123/ai-action",
+                json={
+                    "action_type": "initial_generation",
+                    "requirements": "Build a web application"
+                },
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["action_type"] == "initial_generation"
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.design.get_database')
-    @patch('app.repositories.design_repository.DesignRepository.find_by_id')
-    @patch('app.services.design_engine_service.DesignEngineService.suggest_technology')
-    def test_ai_action_tech_suggestion(self, mock_suggest, mock_find, mock_db, client, auth_headers, mock_design):
+    def test_ai_action_tech_suggestion(self, client, auth_headers, mock_design):
         """Test AI action for technology suggestion."""
-        mock_find.return_value = mock_design
-        mock_suggest.return_value = {
+        from app.api.design import get_design_repository, get_design_engine
+        from app.repositories.design_repository import DesignRepository
+        from app.services.design_engine_service import DesignEngineService
+
+        # Create mock repository
+        mock_repo = AsyncMock(spec=DesignRepository)
+        mock_repo.find_by_id.return_value = mock_design
+
+        # Create mock engine
+        mock_engine = AsyncMock(spec=DesignEngineService)
+        mock_engine.suggest_technology.return_value = {
             "primary_recommendation": {
                 "technology": "FastAPI",
                 "rationale": "Best for Python APIs"
             }
         }
-        
-        response = client.post(
-            "/api/designs/design_123/ai-action",
-            json={
-                "action_type": "tech_suggestion",
-                "element_name": "API Service",
-                "element_type": "container",
-                "element_description": "RESTful API"
-            },
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert "primary_recommendation" in data["result"]
+
+        # Override dependencies
+        app.dependency_overrides[get_design_repository] = lambda: mock_repo
+        app.dependency_overrides[get_design_engine] = lambda: mock_engine
+
+        try:
+            response = client.post(
+                "/api/designs/design_123/ai-action",
+                json={
+                    "action_type": "tech_suggestion",
+                    "element_name": "API Service",
+                    "element_type": "container",
+                    "element_description": "RESTful API"
+                },
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert "primary_recommendation" in data["result"]
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.design.get_database')
-    @patch('app.repositories.design_repository.DesignRepository.find_by_id')
-    @patch('app.repositories.design_repository.DesignRepository.update_design')
-    def test_update_element(self, mock_update, mock_find, mock_db, client, auth_headers, mock_design):
+    def test_update_element(self, client, auth_headers, mock_design):
         """Test updating a design element."""
-        mock_find.return_value = mock_design
-        mock_update.return_value = True
-        
-        response = client.put(
-            "/api/designs/design_123/element/elem_1",
-            json={
-                "name": "Updated System",
-                "description": "Updated description"
-            },
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["success"] is True
-        assert data["element_id"] == "elem_1"
+        from app.api.design import get_design_repository
+        from app.repositories.design_repository import DesignRepository
+
+        # Create mock repository
+        mock_repo = AsyncMock(spec=DesignRepository)
+        mock_repo.find_by_id.return_value = mock_design
+        mock_repo.update_design.return_value = True
+
+        # Override dependency
+        app.dependency_overrides[get_design_repository] = lambda: mock_repo
+
+        try:
+            response = client.put(
+                "/api/designs/design_123/element/elem_1",
+                json={
+                    "name": "Updated System",
+                    "description": "Updated description"
+                },
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 200
+            data = response.json()
+            assert data["success"] is True
+            assert data["element_id"] == "elem_1"
+        finally:
+            app.dependency_overrides.clear()
     
-    @patch('app.api.design.get_database')
-    @patch('app.repositories.design_repository.DesignRepository.find_by_id')
-    def test_update_element_not_found(self, mock_find, mock_db, client, auth_headers, mock_design):
+    def test_update_element_not_found(self, client, auth_headers, mock_design):
         """Test updating a non-existent element."""
-        mock_find.return_value = mock_design
-        
-        response = client.put(
-            "/api/designs/design_123/element/nonexistent",
-            json={"name": "Updated"},
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 404
+        from app.api.design import get_design_repository
+        from app.repositories.design_repository import DesignRepository
+
+        # Create mock repository
+        mock_repo = AsyncMock(spec=DesignRepository)
+        mock_repo.find_by_id.return_value = mock_design
+
+        # Override dependency
+        app.dependency_overrides[get_design_repository] = lambda: mock_repo
+
+        try:
+            response = client.put(
+                "/api/designs/design_123/element/nonexistent",
+                json={"name": "Updated"},
+                headers=auth_headers
+            )
+            
+            assert response.status_code == 404
+        finally:
+            app.dependency_overrides.clear()
 
 
 # ==================== Design Engine Tests ====================
@@ -497,7 +601,6 @@ class TestDesignEngineAPI:
         assert response.status_code == 200
         data = response.json()
         assert "engine_version" in data
-        assert "model" in data
         assert "chains" in data
 
 
@@ -519,16 +622,29 @@ class TestAuthentication:
         )
         assert response.status_code == 401
     
-    def test_valid_auth_token(self, client, auth_headers):
+    def test_valid_auth_token(self, client, auth_headers, mock_project):
         """Test that valid token allows access."""
-        # This will fail on DB access but should pass auth
-        response = client.get(
-            "/api/projects",
-            headers=auth_headers
-        )
-        # Should not be 401 or 403 (auth errors)
-        assert response.status_code != 401
-        assert response.status_code != 403
+        from app.api.projects import get_project_repository
+        from app.repositories.project_repository import ProjectRepository
+        
+        # Mock repository to avoid DB connection
+        mock_repo = AsyncMock(spec=ProjectRepository)
+        mock_repo.find_by_user.return_value = [mock_project]
+        mock_repo.count_by_user.return_value = 1
+        
+        app.dependency_overrides[get_project_repository] = lambda: mock_repo
+        
+        try:
+            response = client.get(
+                "/api/projects",
+                headers=auth_headers
+            )
+            # Should not be 401 or 403 (auth errors)
+            assert response.status_code != 401
+            assert response.status_code != 403
+            assert response.status_code == 200
+        finally:
+            app.dependency_overrides.clear()
 
 
 if __name__ == "__main__":

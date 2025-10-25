@@ -7,7 +7,7 @@ services, RAG retrieval, and API endpoints.
 
 import pytest
 from unittest.mock import Mock, AsyncMock, patch, MagicMock
-from datetime import datetime
+from datetime import datetime, UTC
 
 from app.schemas.knowledge_base import (
     KnowledgeDocument,
@@ -63,8 +63,8 @@ def sample_document(sample_metadata):
         implementation_notes="Test implementation notes",
         related_patterns=["Event-Driven Architecture"],
         metadata=sample_metadata,
-        created_at=datetime.utcnow(),
-        updated_at=datetime.utcnow()
+        created_at=datetime.now(UTC),
+        updated_at=datetime.now(UTC)
     )
 
 
@@ -125,8 +125,8 @@ class TestKnowledgeBaseRepository:
         # Mock retrieval of created document
         created_doc_dict = sample_document_create.model_dump()
         created_doc_dict["_id"] = "new_id"
-        created_doc_dict["created_at"] = datetime.utcnow()
-        created_doc_dict["updated_at"] = datetime.utcnow()
+        created_doc_dict["created_at"] = datetime.now(UTC)
+        created_doc_dict["updated_at"] = datetime.now(UTC)
         
         async def mock_find_one(query):
             if query.get("_id") == "new_id":
@@ -151,9 +151,9 @@ class TestKnowledgeBaseRepository:
         mock_collection = AsyncMock()
         mock_db.__getitem__ = Mock(return_value=mock_collection)
         
-        # Mock cursor
-        mock_cursor = AsyncMock()
-        mock_cursor.__aiter__ = Mock(return_value=iter([
+        # Mock cursor with proper async iteration
+        mock_cursor = MagicMock()
+        test_docs = [
             {
                 "_id": "id1",
                 "category": "architectural_pattern",
@@ -164,10 +164,19 @@ class TestKnowledgeBaseRepository:
                     "quality_score": 0.9,
                     "is_verified": True
                 },
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
+                "created_at": datetime.now(UTC),
+                "updated_at": datetime.now(UTC)
             }
-        ]))
+        ]
+        
+        # Create async iterator
+        async def async_iter():
+            for doc in test_docs:
+                yield doc
+        
+        mock_cursor.__aiter__ = lambda self: async_iter()
+        mock_cursor.skip = Mock(return_value=mock_cursor)
+        mock_cursor.limit = Mock(return_value=mock_cursor)
         
         mock_collection.find = Mock(return_value=mock_cursor)
         
@@ -193,9 +202,11 @@ class TestKnowledgeBaseService:
         with patch('app.services.knowledge_base_service.SentenceTransformer') as mock_st, \
              patch('app.services.knowledge_base_service.chromadb') as mock_chroma:
             
-            # Mock sentence transformer
+            # Mock sentence transformer - return numpy array mock
+            import numpy as np
             mock_model = Mock()
-            mock_model.encode = Mock(return_value=[0.1, 0.2, 0.3])
+            mock_embedding = np.array([0.1, 0.2, 0.3])
+            mock_model.encode = Mock(return_value=mock_embedding)
             mock_st.return_value = mock_model
             
             # Mock ChromaDB client and collection
@@ -232,9 +243,11 @@ class TestKnowledgeBaseService:
         with patch('app.services.knowledge_base_service.SentenceTransformer') as mock_st, \
              patch('app.services.knowledge_base_service.chromadb') as mock_chroma:
             
-            # Mock sentence transformer
+            # Mock sentence transformer - return numpy array mock
+            import numpy as np
             mock_model = Mock()
-            mock_model.encode = Mock(return_value=[0.1, 0.2, 0.3])
+            mock_embedding = np.array([0.1, 0.2, 0.3])
+            mock_model.encode = Mock(return_value=mock_embedding)
             mock_st.return_value = mock_model
             
             # Mock ChromaDB
@@ -270,7 +283,10 @@ class TestRAGRetriever:
     @pytest.mark.asyncio
     async def test_rag_retriever_get_documents(self, sample_document):
         """Test RAG retriever document retrieval."""
-        mock_kb_service = AsyncMock()
+        from app.services.knowledge_base_service import KnowledgeBaseService
+        
+        # Create a mock that passes isinstance check
+        mock_kb_service = AsyncMock(spec=KnowledgeBaseService)
         
         # Mock get_context to return RAGContext
         mock_rag_context = RAGContext(
@@ -330,12 +346,13 @@ class TestKnowledgeBaseAPI:
         # Check that router has the expected routes
         routes = [route.path for route in router.routes]
         
-        assert "/documents" in routes
-        assert "/search" in routes
-        assert "/context" in routes
-        assert "/statistics" in routes
-        assert "/seed" in routes
-        assert "/status" in routes
+        # Endpoints have /knowledge-base/ prefix
+        assert "/knowledge-base/documents" in routes
+        assert "/knowledge-base/search" in routes
+        assert "/knowledge-base/context" in routes
+        assert "/knowledge-base/statistics" in routes
+        assert "/knowledge-base/seed" in routes
+        assert "/knowledge-base/status" in routes
 
 
 if __name__ == "__main__":

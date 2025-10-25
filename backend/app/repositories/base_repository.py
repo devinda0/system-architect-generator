@@ -6,7 +6,7 @@ for MongoDB collections. All specific repositories should inherit from this clas
 """
 
 from typing import TypeVar, Generic, Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, UTC
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.errors import DuplicateKeyError as PyMongoDuplicateKeyError
 from bson import ObjectId
@@ -93,7 +93,7 @@ class BaseRepository(Generic[T]):
         """
         try:
             # Add timestamps
-            now = datetime.utcnow()
+            now = datetime.now(UTC)
             data["created_at"] = now
             data["updated_at"] = now
             
@@ -223,7 +223,7 @@ class BaseRepository(Generic[T]):
             object_id = self._validate_object_id(document_id)
             
             # Add updated timestamp
-            update_data["updated_at"] = datetime.utcnow()
+            update_data["updated_at"] = datetime.now(UTC)
             
             result = await self.collection.update_one(
                 {"_id": object_id},

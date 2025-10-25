@@ -72,7 +72,7 @@ async def create_project(
         )
         
         # Create project
-        project_id = await repo.create_project(current_user["id"], project_data)
+        project_id = await repo.create_project(current_user.id, project_data)
         
         # Fetch created project
         project = await repo.find_by_id(project_id)
@@ -82,7 +82,7 @@ async def create_project(
                 detail="Failed to retrieve created project"
             )
         
-        logger.info(f"Project created: {project_id} by user: {current_user["id"]}")
+        logger.info(f"Project created: {project_id} by user: {current_user.id}")
         
         return ProjectResponse(
             id=project["_id"],
@@ -141,7 +141,7 @@ async def get_project(
             )
         
         # Check if user has access to this project
-        if project["user_id"] != current_user["id"]:
+        if project["user_id"] != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this project"
@@ -205,13 +205,13 @@ async def list_projects(
     """
     try:
         projects = await repo.find_by_user(
-            user_id=current_user["id"],
+            user_id=current_user.id,
             skip=skip,
             limit=limit,
             status=status_filter,
         )
         
-        total = await repo.count_by_user(current_user["id"], status=status_filter)
+        total = await repo.count_by_user(current_user.id, status=status_filter)
         
         project_responses = [
             ProjectResponse(
@@ -236,7 +236,7 @@ async def list_projects(
             limit=limit,
         )
     except Exception as e:
-        logger.error(f"Error listing projects for user {current_user["id"]}: {e}")
+        logger.error(f"Error listing projects for user {current_user.id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to list projects: {str(e)}"
@@ -280,7 +280,7 @@ async def update_project(
                 detail="Project not found"
             )
         
-        if project["user_id"] != current_user["id"]:
+        if project["user_id"] != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this project"
@@ -301,7 +301,7 @@ async def update_project(
         # Fetch updated project
         updated_project = await repo.find_by_id(project_id)
         
-        logger.info(f"Project updated: {project_id} by user: {current_user["id"]}")
+        logger.info(f"Project updated: {project_id} by user: {current_user.id}")
         
         return ProjectResponse(
             id=updated_project["_id"],
@@ -367,7 +367,7 @@ async def delete_project(
                 detail="Project not found"
             )
         
-        if project["user_id"] != current_user["id"]:
+        if project["user_id"] != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this project"
@@ -381,12 +381,12 @@ async def delete_project(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to delete project"
                 )
-            logger.info(f"Project hard deleted: {project_id} by user: {current_user["id"]}")
+            logger.info(f"Project hard deleted: {project_id} by user: {current_user.id}")
         else:
             # Soft delete
             update_data = ProjectUpdate(status="deleted")
             await repo.update_project(project_id, update_data)
-            logger.info(f"Project soft deleted: {project_id} by user: {current_user["id"]}")
+            logger.info(f"Project soft deleted: {project_id} by user: {current_user.id}")
         
     except HTTPException:
         raise

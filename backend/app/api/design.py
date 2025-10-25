@@ -299,7 +299,7 @@ async def get_design_tree(
             )
         
         # Check if user has access to this design
-        if design["user_id"] != current_user["id"]:
+        if design["user_id"] != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this design"
@@ -369,7 +369,7 @@ async def invoke_ai_action(
                 detail="Design not found"
             )
         
-        if design["user_id"] != current_user["id"]:
+        if design["user_id"] != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this design"
@@ -428,7 +428,7 @@ async def invoke_ai_action(
             result=result,
             metadata={
                 "design_id": design_id,
-                "user_id": current_user["id"],
+                "user_id": current_user.id,
             }
         )
     
@@ -483,7 +483,7 @@ async def update_design_element(
                 detail="Design not found"
             )
         
-        if design["user_id"] != current_user["id"]:
+        if design["user_id"] != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access denied to this design"
