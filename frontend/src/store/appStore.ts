@@ -1,19 +1,11 @@
 import { create } from 'zustand';
 import type { Node, Edge } from '@xyflow/react';
-import type { ArchitectureElement } from '../types/architecture';
+
 
 interface AppState {
-  // Selected node for the drawer
+  // Selected node for the left info panel
   selectedNode: Node | null;
   setSelectedNode: (node: Node | null) => void;
-
-  // Drawer state
-  isDrawerOpen: boolean;
-  setIsDrawerOpen: (isOpen: boolean) => void;
-
-  // Architecture elements
-  architectureElements: ArchitectureElement[];
-  setArchitectureElements: (elements: ArchitectureElement[]) => void;
 
   // React Flow nodes and edges
   nodes: Node[];
@@ -29,14 +21,8 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   selectedNode: null,
   setSelectedNode: (node) => {
-    set({ selectedNode: node, isDrawerOpen: !!node });
+    set({ selectedNode: node });
   },
-
-  isDrawerOpen: false,
-  setIsDrawerOpen: (isOpen) => set({ isDrawerOpen: isOpen }),
-
-  architectureElements: [],
-  setArchitectureElements: (elements) => set({ architectureElements: elements }),
 
   nodes: [],
   edges: [],

@@ -1,19 +1,48 @@
 import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
+import { chatService, ApiError } from '../services';
 
 export default function ChatPanel() {
-  const { messages, addMessage } = useAppStore();
+  const { messages, addMessage, nodes, selectedNode } = useAppStore();
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim()) {
-      addMessage('user', input);
+      const userMessage = input.trim();
+      addMessage('user', userMessage);
       setInput('');
-      
-      // TODO: Connect to backend API for AI responses
-      setTimeout(() => {
-        addMessage('assistant', 'This is a placeholder response. Backend integration pending.');
-      }, 500);
+      setIsLoading(true);
+
+      try {
+        // Send message to backend with context
+        const response = await chatService.sendMessage({
+          message: userMessage,
+          context: {
+            currentArchitecture: nodes,
+            selectedNode: selectedNode || undefined,
+          },
+        });
+
+        addMessage('assistant', response.message);
+
+        // Handle any architecture updates from the response
+        if (response.architectureUpdates) {
+          // TODO: Update architecture based on response
+          console.log('Architecture updates:', response.architectureUpdates);
+        }
+      } catch (error) {
+        let errorMessage = 'Failed to get response from AI assistant.';
+        
+        if (error instanceof ApiError) {
+          errorMessage = error.message;
+        }
+        
+        addMessage('assistant', `Error: ${errorMessage}`);
+        console.error('Chat error:', error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -69,13 +98,14 @@ export default function ChatPanel() {
             placeholder="Type your message..."
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
             rows={2}
+            disabled={isLoading}
           />
           <button
             onClick={handleSend}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={!input.trim()}
+            disabled={!input.trim() || isLoading}
           >
-            Send
+            {isLoading ? 'Sending...' : 'Send'}
           </button>
         </div>
       </div>

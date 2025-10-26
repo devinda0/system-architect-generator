@@ -45,3 +45,16 @@ export interface NodeData {
   description: string;
   technology?: string;
 }
+
+// Helper type guards
+export function isSystemContext(element: ArchitectureElement): element is SystemContext {
+  return element.type === ElementType.SYSTEM_CONTEXT;
+}
+
+export function isContainer(element: ArchitectureElement): element is Container {
+  return element.type === ElementType.CONTAINER;
+}
+
+export function isComponent(element: ArchitectureElement): element is Component {
+  return element.type === ElementType.COMPONENT;
+}
