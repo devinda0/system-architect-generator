@@ -7,7 +7,11 @@ A React-based frontend application for generating and visualizing software archi
 - **Interactive Canvas**: Visualize system architecture using React Flow with support for C4 model elements (System Context, Containers, Components)
 - **AI Chat Assistant**: Interact with an AI assistant to discuss and refine your architecture
 - **Node Details Drawer**: Click on any node to view details and perform actions like technology suggestions, decomposition, and refactoring
+- **Backend Integration**: Complete service layer integration with backend APIs for design generation, project management, and AI interactions
 - **Modern Tech Stack**: Built with React, TypeScript, Vite, Tailwind CSS, Zustand, and React Flow
+- **Authentication**: JWT-based authentication with automatic token management
+- **Project Management**: Create, save, and manage architecture projects
+- **Real-time AI**: Direct integration with Google Gemini for AI-powered architecture suggestions
 
 ## Tech Stack
 
@@ -63,13 +67,44 @@ src/
 │   ├── Canvas.tsx       # React Flow canvas
 │   ├── ChatPanel.tsx    # AI chat interface
 │   └── NodeDrawer.tsx   # Node details drawer
+├── services/           # Backend API integration layer
+│   ├── apiClient.ts    # Axios client with auth & error handling
+│   ├── designService.ts # AI design generation service
+│   ├── projectService.ts # Project management service
+│   ├── userService.ts   # Authentication & user management
+│   ├── geminiService.ts # Direct Gemini AI integration
+│   ├── chatService.ts   # Intelligent chat interface
+│   ├── healthService.ts # System health monitoring
+│   └── config.ts       # API configuration & endpoints
 ├── store/              # Zustand state management
 │   └── appStore.ts     # Main application store
 ├── types/              # TypeScript type definitions
-│   └── architecture.ts # C4 model types
+│   ├── architecture.ts # C4 model types (updated for backend)
+│   └── api.ts          # API response & request types
 ├── App.tsx             # Main application component
 └── main.tsx           # Application entry point
 ```
+
+## Service Layer Integration
+
+The frontend includes a comprehensive service layer that integrates with all backend API endpoints:
+
+### Core Services
+- **Design Service**: AI-powered architecture generation, technology suggestions, and component decomposition
+- **Project Service**: Complete CRUD operations for architecture projects
+- **User Service**: Authentication, user profiles, and session management
+- **Chat Service**: Intelligent conversational AI combining multiple AI capabilities
+- **Gemini Service**: Direct integration with Google Gemini AI models
+- **Health Service**: System health monitoring and diagnostics
+
+### Key Features
+- **Automatic Authentication**: JWT token management with automatic refresh
+- **Type Safety**: Full TypeScript integration with backend API schemas
+- **Error Handling**: Comprehensive error handling with user-friendly messages
+- **Real-time AI**: Direct access to Google Gemini for various AI tasks
+- **Offline Support**: Graceful degradation when backend services are unavailable
+
+For detailed documentation on using the service layer, see [README_SERVICES.md](./README_SERVICES.md).
 
 ## Architecture
 

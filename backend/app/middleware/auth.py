@@ -13,6 +13,10 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 import logging
 import os
+import warnings
+
+# Suppress bcrypt version warning
+warnings.filterwarnings("ignore", message=".*trapped.*error reading bcrypt version.*")
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +30,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Security schemes
 security = HTTPBearer()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
 
 
 class TokenData(BaseModel):
@@ -61,6 +65,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches
     """
+    # Bcrypt has a 72-byte limit. For verification, we just truncate silently
+    # since this is for login attempts with existing hashed passwords
+    password_bytes = plain_password.encode('utf-8')
+    if len(password_bytes) > 72:
+        plain_password = plain_password.encode('utf-8')[:72].decode('utf-8', errors='ignore')
+    
     return pwd_context.verify(plain_password, hashed_password)
 
 
@@ -73,7 +83,19 @@ def get_password_hash(password: str) -> str:
         
     Returns:
         Hashed password
+        
+    Raises:
+        ValueError: If password is too long for bcrypt (>72 bytes)
     """
+    # Bcrypt has a 72-byte limit. Check the encoded length to be safe.
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        raise ValueError(
+            f"Password is too long ({len(password_bytes)} bytes). "
+            f"Bcrypt supports passwords up to 72 bytes. "
+            f"Please use a shorter password."
+        )
+    
     return pwd_context.hash(password)
 
 

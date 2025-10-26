@@ -7,10 +7,11 @@ import uvicorn
 
 from app.api.health import router as health_router
 from app.api.user import router as user_router
+from app.api.auth import router as auth_router
 from app.api.gemini import router as gemini_router
 from app.api.design import router as design_router
 from app.api.projects import router as projects_router
-# from app.api.knowledge_base import router as knowledge_base_router  # Requires chromadb - install deps first
+from app.api.knowledge_base import router as knowledge_base_router  # Requires chromadb - install deps first
 from app.config.logging_config import setup_logging
 from app.config.gemini_config import get_config
 from app.config.mongodb_config import (
@@ -20,7 +21,7 @@ from app.config.mongodb_config import (
 )
 
 # Setup logging
-setup_logging(level="INFO")
+# setup_logging(level="INFO")
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -40,11 +41,17 @@ app.add_middleware(
 
 # Register routers
 app.include_router(health_router, prefix="/api")
+app.include_router(auth_router)  # Auth router has its own prefix
 app.include_router(user_router, prefix="/api")
+
+@app.get("/health")
+async def simple_health():
+    return {"status": "ok", "message": "Server is running"}
+# Temporarily commented out to avoid langchain dependencies
 app.include_router(gemini_router, prefix="/api")
 app.include_router(projects_router)
 app.include_router(design_router)
-# app.include_router(knowledge_base_router, prefix="/api")  # Requires chromadb - install deps first
+app.include_router(knowledge_base_router, prefix="/api")  # Requires chromadb - install deps first
 
 
 @app.on_event("startup")
@@ -53,14 +60,15 @@ async def startup_event():
     logger.info("Starting System Architect Generator API...")
     
     # Validate Gemini configuration
-    try:
-        config = get_config()
-        if config.validate_api_key():
-            logger.info("✓ Google Gemini API key configured successfully")
-        else:
-            logger.warning("⚠ Google Gemini API key not configured. Some features may not work.")
-    except Exception as e:
-        logger.error(f"✗ Configuration error: {e}")
+    # try:
+    #     config = get_config()
+    #     if config.validate_api_key():
+    #         logger.info("✓ Google Gemini API key configured")
+    #     else:
+    #         logger.warning("⚠ Google Gemini API key not configured. Some features may not work.")
+    # except Exception as e:
+    #     logger.error(f"✗ Configuration error: {e}")
+    pass
     
     # Connect to MongoDB
     try:
@@ -80,7 +88,7 @@ async def shutdown_event():
     
     # Close MongoDB connection
     try:
-        await close_mongodb_connection()
+        # await close_mongodb_connection()
         logger.info("✓ MongoDB connection closed")
     except Exception as e:
         logger.error(f"✗ Error closing MongoDB connection: {e}")

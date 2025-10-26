@@ -1,1 +1,1 @@
-from .user import UserCreate, UserUpdate, User
+from .user import UserCreate, UserUpdate, User, UserResponse

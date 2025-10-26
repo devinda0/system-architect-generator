@@ -244,7 +244,7 @@ if __name__ == "__main__":
     from app.config.mongodb_config import get_database
     
     async def main():
-        db = await get_database()
+        db = get_database()
         stats = await seed_knowledge_base(db, force_update=False)
         print(f"Seeding completed: {stats}")
         

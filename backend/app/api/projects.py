@@ -29,13 +29,13 @@ router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 async def get_project_repository() -> ProjectRepository:
     """Get project repository instance."""
-    database = await get_database()
+    database = get_database()
     return ProjectRepository(database)
 
 
 async def get_design_repository() -> DesignRepository:
     """Get design repository instance."""
-    database = await get_database()
+    database = get_database()
     return DesignRepository(database)
 
 

@@ -7,6 +7,7 @@ Repository for managing feedback documents in MongoDB.
 from typing import Optional, List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
+import uuid
 
 from app.repositories.base_repository import BaseRepository
 from app.schemas.mongodb_schemas import FeedbackInDB, FeedbackCreate, FeedbackUpdate
@@ -47,6 +48,7 @@ class FeedbackRepository(BaseRepository[FeedbackInDB]):
         """
         data = feedback_data.model_dump()
         data["user_id"] = user_id
+        data["feedback_id"] = str(uuid.uuid4())
         data["status"] = "new"
         
         feedback_id = await self.create(data)

@@ -1,0 +1,14 @@
+INFO:     Started server process [82715]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55996 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56071 - "POST /api/auth/register HTTP/1.1" 200 OK
+/Users/devinda/VS/system-architect-generator/backend/simple_server.py:60: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  expire = datetime.utcnow() + expires_delta
+INFO:     127.0.0.1:56131 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56701 - "GET /docs?id=6d7b05ee-aab2-47cc-b3bb-f7e833fa6544&vscodeBrowserReqId=1761459169456 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56701 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49548 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51601 - "GET /docs?id=6d7b05ee-aab2-47cc-b3bb-f7e833fa6544&vscodeBrowserReqId=1761460213261 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51601 - "GET /openapi.json HTTP/1.1" 200 OK

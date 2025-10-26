@@ -3,4 +3,8 @@ export * from './apiClient';
 export * from './chatService';
 export * from './architectureService';
 export * from './projectService';
+export * from './designService';
+export * from './geminiService';
+export * from './healthService';
+export * from './userService';
 export * from './config';

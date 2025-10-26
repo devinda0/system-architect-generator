@@ -7,6 +7,7 @@ Repository for managing project documents in MongoDB.
 from typing import Optional, List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
+import uuid
 
 from app.repositories.base_repository import BaseRepository
 from app.schemas.mongodb_schemas import ProjectInDB, ProjectCreate, ProjectUpdate
@@ -43,6 +44,7 @@ class ProjectRepository(BaseRepository[ProjectInDB]):
         """
         data = project_data.model_dump()
         data["user_id"] = user_id
+        data["project_id"] = str(uuid.uuid4())
         data["design_count"] = 0
         
         project_id = await self.create(data)

@@ -25,8 +25,8 @@ db.createCollection('users', {
           description: 'Must be a valid email address'
         },
         full_name: {
-          bsonType: 'string',
-          description: 'User full name'
+          bsonType: ['string', 'null'],
+          description: 'User full name (optional)'
         },
         created_at: {
           bsonType: 'date',

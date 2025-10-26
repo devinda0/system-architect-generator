@@ -7,6 +7,7 @@ Repository for managing user documents in MongoDB.
 from typing import Optional, List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import logging
+import uuid
 
 from app.repositories.base_repository import BaseRepository
 from app.schemas.mongodb_schemas import UserInDB, UserCreate, UserUpdate
@@ -44,6 +45,13 @@ class UserRepository(BaseRepository[UserInDB]):
         data = user_data.model_dump()
         data.pop("password", None)  # Remove plain password
         data["hashed_password"] = hashed_password
+        
+        # Add user_id as required by MongoDB schema
+        data["user_id"] = str(uuid.uuid4())
+        
+        # Ensure full_name is a string (empty string if None)
+        if data.get("full_name") is None:
+            data["full_name"] = ""
         
         user_id = await self.create(data)
         logger.info(f"Created user: {user_data.username}")

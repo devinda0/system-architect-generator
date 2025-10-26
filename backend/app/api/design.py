@@ -42,7 +42,7 @@ router = APIRouter(prefix="/api/designs", tags=["Design Engine"])
 # Dependency to get services
 async def get_design_repository() -> DesignRepository:
     """Get design repository instance."""
-    database = await get_database()
+    database = get_database()
     return DesignRepository(database)
 
 

@@ -116,7 +116,7 @@ from app.utils.knowledge_base_seeder import seed_knowledge_base
 import asyncio
 
 async def main():
-    db = await get_database()
+    db = get_database()
     stats = await seed_knowledge_base(db, force_update=False)
     print(f"Seeding completed: {stats}")
 

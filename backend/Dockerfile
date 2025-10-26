@@ -8,13 +8,18 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=300
 
 # Copy requirements first for better caching
 COPY requirements.txt .
 
 # Install Python dependencies (using pre-built wheels when available)
-RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
+# Increase timeout and retries to handle network issues
+RUN pip install --prefer-binary \
+    --timeout=300 \
+    --retries=5 \
+    -r requirements.txt
 
 # Copy application code
 COPY . .

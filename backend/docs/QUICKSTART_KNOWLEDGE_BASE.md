@@ -86,7 +86,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 
 # Initialize
-db = await get_database()
+db = get_database()
 repository = KnowledgeBaseRepository(db)
 kb_service = KnowledgeBaseService(repository)
 
