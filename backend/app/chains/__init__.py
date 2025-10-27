@@ -11,6 +11,7 @@ from app.chains.tech_suggestion_chain import TechSuggestionChain
 from app.chains.decomposition_chain import DecompositionChain
 from app.chains.api_suggestion_chain import APISuggestionChain
 from app.chains.refactor_chain import RefactorChain
+from app.chains.get_context import GetContextChain
 
 __all__ = [
     "BaseDesignChain",
@@ -19,4 +20,5 @@ __all__ = [
     "DecompositionChain",
     "APISuggestionChain",
     "RefactorChain",
+    "GetContextChain",
 ]
