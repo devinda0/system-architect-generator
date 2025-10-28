@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 class InitialDesignRequest(BaseModel):
     """Request schema for initial design generation."""
-    
+
     requirements: str = Field(
         ...,
         description="User requirements as text",
