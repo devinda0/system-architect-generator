@@ -12,9 +12,7 @@ export interface ChatRequest {
   query: string;
 }
 
-export interface ChatResponse {
-  currentContext: SystemContext | {};
-}
+export interface ChatResponse extends SystemContext {}
 
 class ChatService {
   /**

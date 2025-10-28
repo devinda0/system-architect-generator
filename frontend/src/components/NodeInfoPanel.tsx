@@ -57,10 +57,10 @@ export default function NodeInfoPanel() {
         currentContext: currentContext || {}
       })
 
-      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      const { nodes, edges } = renderFromJSON(response as any);
       setNodes(nodes);
       setEdges(edges);
-      setCurrentContext(response.currentContext as any);
+      setCurrentContext(response as any);
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to get technology suggestions';
       addMessage('assistant', `Error: ${errorMessage}`);
@@ -81,10 +81,10 @@ export default function NodeInfoPanel() {
         currentContext: currentContext || {}
       });
 
-      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      const { nodes, edges } = renderFromJSON(response as any);
       setNodes(nodes);
       setEdges(edges);
-      setCurrentContext(response.currentContext as any);
+      setCurrentContext(response as any);
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to decompose container';
       addMessage('assistant', `Error: ${errorMessage}`);
@@ -105,10 +105,10 @@ export default function NodeInfoPanel() {
         currentContext: currentContext || {}
       });
 
-      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      const { nodes, edges } = renderFromJSON(response as any);
       setNodes(nodes);
       setEdges(edges);
-      setCurrentContext(response.currentContext as any);
+      setCurrentContext(response as any);
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to get API suggestions';
       addMessage('assistant', `Error: ${errorMessage}`);
@@ -129,10 +129,10 @@ export default function NodeInfoPanel() {
         currentContext: currentContext || {}
       });
 
-      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      const { nodes, edges } = renderFromJSON(response as any);
       setNodes(nodes);
       setEdges(edges);
-      setCurrentContext(response.currentContext as any);
+      setCurrentContext(response as any);
       
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to get refactoring suggestions';

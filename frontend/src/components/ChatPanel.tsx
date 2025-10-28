@@ -22,10 +22,10 @@ export default function ChatPanel() {
           currentContext: currentContext || {}
         });
 
-        const {nodes, edges} = renderFromJSON(response.currentContext as any);
+        const {nodes, edges} = renderFromJSON(response as any);
         setNodes(nodes);
         setEdges(edges);
-        setCurrentContext(response.currentContext as any);
+        setCurrentContext(response as any);
       } catch (error) {
         let errorMessage = 'Failed to get response from AI assistant.';
         
