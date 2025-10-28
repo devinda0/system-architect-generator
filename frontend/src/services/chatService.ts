@@ -1,3 +1,4 @@
+import type { SystemContext } from '../types/architecture';
 import { apiClient } from './apiClient';
 import { API_ENDPOINTS } from './config';
 
@@ -7,17 +8,12 @@ export interface ChatMessage {
 }
 
 export interface ChatRequest {
-  message: string;
-  context?: {
-    currentArchitecture?: any;
-    selectedNode?: any;
-  };
+  currentContext: SystemContext | {};
+  query: string;
 }
 
 export interface ChatResponse {
-  message: string;
-  suggestions?: string[];
-  architectureUpdates?: any;
+  currentContext: SystemContext | {};
 }
 
 class ChatService {
@@ -30,21 +26,12 @@ class ChatService {
         API_ENDPOINTS.CHAT,
         request
       );
+      console.log('Chat service response:', response);
       return response;
     } catch (error) {
       console.error('Chat service error:', error);
       throw error;
     }
-  }
-
-  /**
-   * Send a streaming chat message (for future implementation)
-   */
-  async *streamMessage(request: ChatRequest): AsyncGenerator<string> {
-    // TODO: Implement streaming chat using Server-Sent Events or WebSocket
-    // For now, fall back to regular message
-    const response = await this.sendMessage(request);
-    yield response.message;
   }
 }
 

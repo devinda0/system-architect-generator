@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import type { SystemContext, Container, Component } from '../types/architecture';
 import { isSystemContext, isContainer } from '../types/architecture';
-import { architectureService, ApiError } from '../services';
+import { architectureService, chatService, ApiError } from '../services';
+import { renderFromJSON } from '../utils/diagramRenderer';
 
 export default function NodeInfoPanel() {
-  const { selectedNode, setSelectedNode, isDrawerOpen, addMessage } = useAppStore();
+  const { selectedNode, setSelectedNode, addMessage, currentContext, setCurrentContext, setNodes, setEdges } = useAppStore();
   const [isLoading, setIsLoading] = useState(false);
   const [activeAction, setActiveAction] = useState<string | null>(null);
 
@@ -51,21 +52,15 @@ export default function NodeInfoPanel() {
     setActiveAction('technology');
     
     try {
-      const response = await architectureService.suggestTechnology({
-        elementId: selectedNode.id,
-        elementType: element.type,
-        context: element.description,
-      });
+      const response = await chatService.sendMessage({
+        query: `Suggest suitable technologies for the following element:\n\nName: ${nodeData.label}\nType: ${element.type}\nDescription: ${element.description}`,
+        currentContext: currentContext || {}
+      })
 
-      // Add suggestions to chat
-      const suggestions = response.suggestions
-        .map(
-          (s) =>
-            `**${s.technology}**\n${s.reasoning}\n\nPros: ${s.pros.join(', ')}\nCons: ${s.cons.join(', ')}`
-        )
-        .join('\n\n');
-
-      addMessage('assistant', `Technology suggestions for ${nodeData.label}:\n\n${suggestions}`);
+      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      setNodes(nodes);
+      setEdges(edges);
+      setCurrentContext(response.currentContext as any);
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to get technology suggestions';
       addMessage('assistant', `Error: ${errorMessage}`);
@@ -81,19 +76,15 @@ export default function NodeInfoPanel() {
     setActiveAction('decompose');
     
     try {
-      const response = await architectureService.decomposeContainer({
-        containerId: selectedNode.id,
-        containerName: nodeData.label,
-        technology: nodeData.technology,
+      const response = await chatService.sendMessage({
+        query: `Decompose the following container into its main components:\n\nName: ${nodeData.label}\nDescription: ${element.description}`,
+        currentContext: currentContext || {}
       });
 
-      // TODO: Update the canvas with new components
-      addMessage(
-        'assistant',
-        `Decomposed ${nodeData.label} into ${response.components.length} components:\n${response.components.map((c) => `- ${c.name}`).join('\n')}`
-      );
-      
-      console.log('Decomposition response:', response);
+      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      setNodes(nodes);
+      setEdges(edges);
+      setCurrentContext(response.currentContext as any);
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to decompose container';
       addMessage('assistant', `Error: ${errorMessage}`);
@@ -109,20 +100,15 @@ export default function NodeInfoPanel() {
     setActiveAction('api');
     
     try {
-      const response = await architectureService.suggestApiEndpoints({
-        componentId: selectedNode.id,
-        componentName: nodeData.label,
-        description: element.description,
+      const response = await chatService.sendMessage({
+        query: `Suggest API endpoints for the following component:\n\nName: ${nodeData.label}\nDescription: ${element.description}`,
+        currentContext: currentContext || {}
       });
 
-      const endpoints = response.endpoints
-        .map((e) => `**${e.method} ${e.path}**\n${e.description}`)
-        .join('\n\n');
-
-      addMessage(
-        'assistant',
-        `API endpoint suggestions for ${nodeData.label}:\n\n${endpoints}`
-      );
+      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      setNodes(nodes);
+      setEdges(edges);
+      setCurrentContext(response.currentContext as any);
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to get API suggestions';
       addMessage('assistant', `Error: ${errorMessage}`);
@@ -138,17 +124,16 @@ export default function NodeInfoPanel() {
     setActiveAction('refactor');
     
     try {
-      const response = await architectureService.refactorElement({
-        elementId: selectedNode.id,
-        elementType: element.type,
-        refactoringGoal: 'Improve design and structure',
+      const response = await chatService.sendMessage({
+        query: `Provide refactoring suggestions for the following element:\n\nName: ${nodeData.label}\nType: ${element.type}\nDescription: ${element.description}`,
+        currentContext: currentContext || {}
       });
 
-      const suggestions = response.suggestions.join('\n- ');
-      addMessage(
-        'assistant',
-        `Refactoring suggestions for ${nodeData.label}:\n\n- ${suggestions}`
-      );
+      const { nodes, edges } = renderFromJSON(response.currentContext as any);
+      setNodes(nodes);
+      setEdges(edges);
+      setCurrentContext(response.currentContext as any);
+      
     } catch (error) {
       const errorMessage = error instanceof ApiError ? error.message : 'Failed to get refactoring suggestions';
       addMessage('assistant', `Error: ${errorMessage}`);

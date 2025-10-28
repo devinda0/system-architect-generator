@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useAppStore } from '../store/appStore';
 import { chatService, ApiError } from '../services';
+import { renderFromJSON } from '../utils/diagramRenderer';
 
 export default function ChatPanel() {
-  const { messages, addMessage, nodes, selectedNode } = useAppStore();
+  const { messages, addMessage, nodes, setNodes,setEdges, currentContext, setCurrentContext, selectedNode } = useAppStore();
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,20 +18,14 @@ export default function ChatPanel() {
       try {
         // Send message to backend with context
         const response = await chatService.sendMessage({
-          message: userMessage,
-          context: {
-            currentArchitecture: nodes,
-            selectedNode: selectedNode || undefined,
-          },
+          query: userMessage,
+          currentContext: currentContext || {}
         });
 
-        addMessage('assistant', response.message);
-
-        // Handle any architecture updates from the response
-        if (response.architectureUpdates) {
-          // TODO: Update architecture based on response
-          console.log('Architecture updates:', response.architectureUpdates);
-        }
+        const {nodes, edges} = renderFromJSON(response.currentContext as any);
+        setNodes(nodes);
+        setEdges(edges);
+        setCurrentContext(response.currentContext as any);
       } catch (error) {
         let errorMessage = 'Failed to get response from AI assistant.';
         

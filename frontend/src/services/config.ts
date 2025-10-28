@@ -6,7 +6,7 @@ export const API_CONFIG = {
 
 export const API_ENDPOINTS = {
   // Chat endpoints
-  CHAT: '/api/chat',
+  CHAT: '/api/designs/context',
   
   // Architecture endpoints
   GENERATE_INITIAL_DESIGN: '/api/architecture/generate',
