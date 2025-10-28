@@ -19,30 +19,60 @@ class GetContextChain(BaseDesignChain):
         include system context, containers, components, and code level details as applicable.
 
         if query is not relevant to system architecture, respond with empty context.
-
+        make relationship's description meaningful and very short.
+        every container must have children components.
+        every component must have children code level details.
 
         Query: {query}
         Current Context: {current_context}
         Output should be in json format with keys:
 
         {{
+            "id": "unique context id",
             "name": "system context name",
             "description": "system context description",
-            "childrens": [
+            "relationships": [
                 {{
+                    "targetId": "related context id",
+                    "description": "relationship description"
+                }}
+            ],
+            "children": [
+                {{
+                    "id": "unique container id",
                     "name": "container name",
                     "description": "container description",
                     "technologies": ["tech1", "tech2"],
+                    "relationships": [
+                        {{
+                            "targetId": "related context id",
+                            "description": "relationship description"
+                        }}
+                    ],
                     "children": [
                         {{
+                            "id": "unique component id",
                             "name": "component name",
                             "description": "component description",
-                            "responsibilities": ["responsibility1", "responsibility2"]
+                            "responsibilities": ["responsibility1", "responsibility2"],
+                            "relationships": [
+                                {{
+                                    "targetId": "related context id",
+                                    "description": "relationship description"
+                                }}
+                            ],
                             "children": [
                                 {{
+                                    "id": "unique code id",
                                     "name": "Code name",
                                     "description": "code description",
                                     "responsibilities": ["responsibility1", "responsibility2"],
+                                    "relationships": [
+                                        {{
+                                            "targetId": "related context id",
+                                            "description": "relationship description"
+                                        }}
+                                    ]
                                 }}
                             ],
                         }}

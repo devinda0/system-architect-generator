@@ -48,12 +48,15 @@ export function renderFromJSON(context: SystemContext): {
           });
           minFitWidth += componentWidth + 50;
           minFitHeight += componentHeight;
-          component.relationships.forEach((rel) => {
-            allRelationships.push({
-              sourceId: component.id,
-              relationship: rel,
+
+          if (component.relationships && component.relationships.length > 0) {
+            component.relationships.forEach((rel) => {
+              allRelationships.push({
+                sourceId: component.id,
+                relationship: rel,
+              });
             });
-          });
+          }
 
           
 
@@ -88,9 +91,11 @@ export function renderFromJSON(context: SystemContext): {
       minContainerFitWidth += width + 150;
       minContainerFitHeight += height;
 
-      container.relationships.forEach((rel) => {
-        allRelationships.push({ sourceId: container.id, relationship: rel });
-      });
+      if (container.relationships && container.relationships.length > 0) {
+        container.relationships.forEach((rel) => {
+          allRelationships.push({ sourceId: container.id, relationship: rel });
+        });
+      }
 
       nodes.unshift({
         id: container.id,
@@ -122,10 +127,12 @@ export function renderFromJSON(context: SystemContext): {
     },
   ]);
 
-  // Collect relationships from SystemContext
-  context.relationships.forEach((rel) => {
-    allRelationships.push({ sourceId: context.id, relationship: rel });
-  });
+  if (context.relationships && context.relationships.length > 0) {
+    // Collect relationships from SystemContext
+    context.relationships.forEach((rel) => {
+      allRelationships.push({ sourceId: context.id, relationship: rel });
+    });
+  }
 
   nodes.unshift({
     id: context.id,
