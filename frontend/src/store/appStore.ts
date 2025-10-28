@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 import type { Node, Edge } from '@xyflow/react';
+import type { SystemContext } from '../types/architecture';
 
 
 interface AppState {
   // Selected node for the left info panel
   selectedNode: Node | null;
   setSelectedNode: (node: Node | null) => void;
+
+  currentContext: SystemContext | null;
+  setCurrentContext: (context: SystemContext | null) => void;
 
   // React Flow nodes and edges
   nodes: Node[];
@@ -22,6 +26,11 @@ export const useAppStore = create<AppState>((set) => ({
   selectedNode: null,
   setSelectedNode: (node) => {
     set({ selectedNode: node });
+  },
+
+  currentContext: null,
+  setCurrentContext: (context) => {
+    set({ currentContext: context });
   },
 
   nodes: [],
