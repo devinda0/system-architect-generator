@@ -8,11 +8,11 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: iad.ocir.io
-  REGION: iad
+  REGISTRY: hyd.ocir.io
+  REGION: hyd
   NAMESPACE: ax1cmfkxkbut
-  BACKEND_IMAGE: iad.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-1
-  FRONTEND_IMAGE: iad.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-2
+  BACKEND_IMAGE: hyd.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-1
+  FRONTEND_IMAGE: hyd.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-2
 
 jobs:
   build-and-push:
