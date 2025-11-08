@@ -17,6 +17,8 @@ To use the Docker build and push workflow, you need to configure the following s
   - Example: `ax1cmfkxkbut/oracleidentitycloudservice/your.email@example.com`
   - Or: `ax1cmfkxkbut/your-oci-username`
 
+**Note**: The tenancy namespace in your case is `ax1cmfkxkbut`
+
 ### 2. OCI_AUTH_TOKEN
 - **Name**: `OCI_AUTH_TOKEN`
 - **Value**: Your OCI Auth Token
@@ -57,8 +59,14 @@ The workflow will automatically run when you:
 ## Expected Output
 
 After successful execution, your images will be available at:
-- Backend: `ax1cmfkxkbut.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-1:latest`
-- Frontend: `ax1cmfkxkbut.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-2:latest`
+- Backend: `iad.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-1:latest`
+- Frontend: `iad.ocir.io/ax1cmfkxkbut/ranga-tech/dev/app-2:latest`
+
+**Note**: Registry URL format is `<region>.ocir.io` where region is `iad` for Ashburn. Common regions:
+- `iad` - US East (Ashburn)
+- `phx` - US West (Phoenix)
+- `fra` - Germany Central (Frankfurt)
+- `lhr` - UK South (London)
 
 ## Troubleshooting
 

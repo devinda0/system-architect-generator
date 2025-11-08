@@ -13,9 +13,13 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REGISTRY="ax1cmfkxkbut.ocir.io"
-BACKEND_REPO="ax1cmfkxkbut/ranga-tech/dev/app-1"
-FRONTEND_REPO="ax1cmfkxkbut/ranga-tech/dev/app-2"
+# OCI Region: iad = Ashburn, phx = Phoenix, fra = Frankfurt, lhr = London
+# Change REGION to match your OCI region
+REGION="iad"
+REGISTRY="${REGION}.ocir.io"
+NAMESPACE="ax1cmfkxkbut"
+BACKEND_REPO="${NAMESPACE}/ranga-tech/dev/app-1"
+FRONTEND_REPO="${NAMESPACE}/ranga-tech/dev/app-2"
 BACKEND_IMAGE="${REGISTRY}/${BACKEND_REPO}"
 FRONTEND_IMAGE="${REGISTRY}/${FRONTEND_REPO}"
 
