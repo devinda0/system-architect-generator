@@ -16,31 +16,35 @@ function ComponentNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`h-full w-[${nodeData.width}px] px-4 py-3 rounded-md border-2 bg-purple-50 ${
-        selected ? "border-purple-600 shadow-lg" : "border-purple-400"
+      className={`h-full px-4 py-3 rounded-lg border-2 bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50 backdrop-blur-sm transition-all duration-300 ${
+        selected 
+          ? "border-purple-500 shadow-xl shadow-purple-500/30 scale-[1.02]" 
+          : "border-purple-300 shadow-md hover:shadow-lg hover:border-purple-400"
       }`}
+      style={{ 
+        width: `${nodeData.width}px`,
+        minHeight: `${nodeData.height}px`
+      }}
     >
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-purple-600"
+        className="!bg-purple-600 !w-2.5 !h-2.5 !border-2 !border-white"
       />
 
-      <div className="flex items-center gap-2 mb-1">
-        <div className="w-2 h-2 rounded-sm bg-purple-600" />
-        <span className="text-xs font-semibold text-purple-800 uppercase tracking-wider">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-sm bg-purple-600 animate-pulse" />
+        <span className="text-xs font-bold text-purple-700 uppercase tracking-widest">
           Component
         </span>
       </div>
 
-      <div className="w-full flex-1 p-2"></div>
-
-      <div className="font-semibold text-gray-900 text-sm mb-1">
+      <div className="font-bold text-gray-900 text-sm mb-2 leading-tight">
         {nodeData.label}
       </div>
 
       {nodeData.technology && (
-        <div className="text-xs text-gray-600 italic">
+        <div className="text-xs font-medium text-purple-700 bg-purple-100 px-2 py-1 rounded-md inline-block">
           {nodeData.technology}
         </div>
       )}
@@ -48,7 +52,7 @@ function ComponentNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-purple-600"
+        className="!bg-purple-600 !w-2.5 !h-2.5 !border-2 !border-white"
       />
     </div>
   );

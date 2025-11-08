@@ -16,34 +16,38 @@ function ContainerNode({ data, selected }: NodeProps) {
 
   return (
     <div
-      className={`h-full w-[${
-        nodeData.width
-      }px] rounded-lg border-2 bg-orange-50 bg-opacity-40 ${
-        selected ? "border-orange-600 shadow-lg" : "border-orange-400"
+      className={`h-full rounded-xl border-3 bg-gradient-to-br from-orange-50 via-amber-50/80 to-yellow-50 backdrop-blur-sm transition-all duration-300 ${
+        selected 
+          ? "border-orange-500 shadow-2xl shadow-orange-500/30 scale-[1.02]" 
+          : "border-orange-300 shadow-lg hover:shadow-xl hover:border-orange-400"
       }`}
-      style={{ pointerEvents: 'all' }}
+      style={{ 
+        pointerEvents: 'all',
+        width: `${nodeData.width}px`,
+        minHeight: `${nodeData.height}px`
+      }}
     >
       <Handle
         type="target"
         position={Position.Top}
-        className="!bg-orange-600"
+        className="!bg-orange-600 !w-3 !h-3 !border-2 !border-white"
       />
 
-      <div
-        className={`h-[${nodeData.height}px] w-[${nodeData.width}px] bg-orange-100 px-3 py-2 rounded-t-md border-b border-orange-300 mb-2`}
-      >
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-2.5 h-2.5 rounded bg-orange-600" />
-          <span className="text-xs font-semibold text-orange-800 uppercase tracking-wider">
+      <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-3 rounded-t-lg border-b-2 border-orange-300 shadow-md">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-2 h-2 rounded-sm bg-white animate-pulse" />
+          <span className="text-xs font-bold text-orange-100 uppercase tracking-widest">
             Container
           </span>
         </div>
 
-        <div className="flex w-full ">
-          <div className="font-bold text-gray-900">{nodeData.label}</div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="font-bold text-white text-base drop-shadow-md">
+            {nodeData.label}
+          </div>
 
           {nodeData.technology && (
-            <div className="ml-3 text-xs font-semibold px-2 py-1 text-white italic bg-orange-500 rounded-full ">
+            <div className="text-xs font-semibold px-3 py-1 text-orange-900 bg-white/90 rounded-full backdrop-blur-sm shadow-sm">
               {nodeData.technology}
             </div>
           )}
@@ -55,7 +59,7 @@ function ContainerNode({ data, selected }: NodeProps) {
       <Handle
         type="source"
         position={Position.Bottom}
-        className="!bg-orange-600"
+        className="!bg-orange-600 !w-3 !h-3 !border-2 !border-white"
       />
     </div>
   );

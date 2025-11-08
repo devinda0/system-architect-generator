@@ -1,20 +1,17 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { SystemContext, Relationship } from "../types/architecture";
 
-interface LayoutNode {
-  id: string;
-  width: number;
-  height: number;
-  x?: number;
-  y?: number;
-}
+const componentWidth = 200;
+const componentHeight = 100;
+const systemContextWidth = 300;
+const systemContextHeight = 240;
 
-const componentWidth = 180;
-const componentHeight = 90;
-const containerWidth = 220;
-const containerHeight = 120;
-const systemContextWidth = 240;
-const systemContextHeight = 200;
+// Layout constants
+const PADDING = 40;
+const COMPONENT_SPACING_X = 30;
+const COMPONENT_SPACING_Y = 20;
+const CONTAINER_SPACING_X = 60;
+const SYSTEM_PADDING = 50;
 
 export function renderFromJSON(context: SystemContext): {
   nodes: Node[];
@@ -27,28 +24,21 @@ export function renderFromJSON(context: SystemContext): {
     relationship: Relationship;
   }> = [];
 
-  const levelNodes = new Map<number, LayoutNode[]>();
+  let systemContextTotalWidth = systemContextWidth;
+  let systemContextTotalHeight = systemContextHeight;
+  let containerX = SYSTEM_PADDING + PADDING;
 
-  const containerNodes: LayoutNode[] = [];
-  let minContainerFitWidth = 0;
-  let minContainerFitHeight = 0;
-  let posX = 100;
   if (context.children && context.children.length > 0) {
     context.children.forEach((container) => {
-      const componentNodes: LayoutNode[] = [];
-      let minFitWidth = 0;
-      let minFitHeight = 0;
-      let coordX = 50;
+      let componentX = PADDING;
+      let componentY = 100; // Start below container header
+      let maxComponentX = 0;
+      let maxComponentY = 0;
+      
+      // Calculate components layout
       if (container.children && container.children.length > 0) {
         container.children.forEach((component, index) => {
-          componentNodes.push({
-            id: component.id,
-            width: componentWidth,
-            height: componentHeight,
-          });
-          minFitWidth += componentWidth + 50;
-          minFitHeight += componentHeight;
-
+          // Collect relationships
           if (component.relationships && component.relationships.length > 0) {
             component.relationships.forEach((rel) => {
               allRelationships.push({
@@ -58,12 +48,11 @@ export function renderFromJSON(context: SystemContext): {
             });
           }
 
-          
-
+          // Create component node
           nodes.push({
             id: component.id,
             type: "component",
-            position: { x: coordX, y: 80 },
+            position: { x: componentX, y: componentY },
             data: {
               element: component,
               label: component.name,
@@ -75,81 +64,94 @@ export function renderFromJSON(context: SystemContext): {
             extent: "parent" as const,
           });
 
-          coordX += componentWidth + 50;
-        });
+          maxComponentX = Math.max(maxComponentX, componentX + componentWidth);
+          maxComponentY = Math.max(maxComponentY, componentY + componentHeight);
 
-        levelNodes.set(2, [...(levelNodes.get(2) || []), ...componentNodes]);
+          // Position next component
+          componentX += componentWidth + COMPONENT_SPACING_X;
+          
+          // Wrap to next row if needed (max 3 per row)
+          if ((index + 1) % 3 === 0) {
+            componentX = PADDING;
+            componentY += componentHeight + COMPONENT_SPACING_Y;
+          }
+        });
       }
 
-      const width = Math.max(containerWidth, minFitWidth);
-      const height = Math.max(containerHeight, minFitHeight);
-      containerNodes.push({
-        id: container.id,
-        width: width,
-        height: height,
-      });
-      minContainerFitWidth += width + 150;
-      minContainerFitHeight += height;
+      // Calculate container dimensions
+      const containerWidth = Math.max(
+        280,
+        maxComponentX + PADDING * 2
+      );
+      const containerHeight = Math.max(
+        140,
+        maxComponentY + PADDING
+      );
 
+      // Collect container relationships
       if (container.relationships && container.relationships.length > 0) {
         container.relationships.forEach((rel) => {
           allRelationships.push({ sourceId: container.id, relationship: rel });
         });
       }
 
+      // Create container node
       nodes.unshift({
         id: container.id,
         type: "container",
-        position: { x: posX, y: 120 },
+        position: { x: containerX, y: SYSTEM_PADDING + PADDING },
         data: {
           element: container,
           label: container.name,
           technology: container.technology,
-          width: width,
-          height: height,
+          width: containerWidth,
+          height: containerHeight,
         },
-        width: width,
-        height: height,
+        width: containerWidth,
+        height: containerHeight,
         parentId: context.id,
         extent: "parent" as const,
       });
-      posX += width + 100;
-    });
 
-    levelNodes.set(1, containerNodes);
+      // Update system context dimensions
+      systemContextTotalWidth = Math.max(
+        systemContextTotalWidth,
+        containerX + containerWidth + SYSTEM_PADDING + PADDING
+      );
+      systemContextTotalHeight = Math.max(
+        systemContextTotalHeight,
+        containerHeight + SYSTEM_PADDING + PADDING * 2
+      );
+
+      // Position next container
+      containerX += containerWidth + CONTAINER_SPACING_X;
+    });
   }
 
-  levelNodes.set(0, [
-    {
-      id: context.id,
-      width: Math.max(systemContextWidth, minContainerFitWidth),
-      height: Math.max(systemContextHeight, minContainerFitHeight),
-    },
-  ]);
-
+  // Collect system context relationships
   if (context.relationships && context.relationships.length > 0) {
-    // Collect relationships from SystemContext
     context.relationships.forEach((rel) => {
       allRelationships.push({ sourceId: context.id, relationship: rel });
     });
   }
 
+  // Create system context node
   nodes.unshift({
     id: context.id,
     type: "systemContext",
-    position: { x: 0, y: 0 }, // Will be updated after layout
+    position: { x: 50, y: 50 },
     data: {
       element: context,
       label: context.name,
-      width: Math.max(systemContextWidth, minContainerFitWidth),
-      height: Math.max(systemContextHeight, minContainerFitHeight),
+      width: systemContextTotalWidth,
+      height: systemContextTotalHeight,
     },
-    width: Math.max(systemContextWidth, minContainerFitWidth),
-    height: Math.max(systemContextHeight, minContainerFitHeight),
+    width: systemContextTotalWidth,
+    height: systemContextTotalHeight,
   });
 
 
-  // Create edges from all relationships
+  // Create edges from all relationships with premium styling
   allRelationships.forEach(({ sourceId, relationship }) => {
     edges.push({
       id: `${sourceId}-${relationship.targetId}`,
@@ -157,10 +159,21 @@ export function renderFromJSON(context: SystemContext): {
       target: relationship.targetId,
       label: relationship.description,
       type: "smoothstep",
-      animated: false,
-      style: { stroke: "#64748b", strokeWidth: 2 },
-      labelStyle: { fill: "#475569", fontSize: 12 },
-      labelBgStyle: { fill: "#f8fafc", fillOpacity: 0.9 },
+      animated: true,
+      style: { 
+        stroke: "#6366f1", 
+        strokeWidth: 2.5,
+        strokeDasharray: "0"
+      },
+      labelStyle: { 
+        fill: "#1e293b", 
+        fontSize: 12,
+        fontWeight: 500
+      },
+      labelBgStyle: { 
+        fill: "#ffffff", 
+        fillOpacity: 0.95
+      },
     });
   });
 

@@ -20,17 +20,17 @@ function App() {
   }, []);
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden">
+    <div className="h-screen w-screen flex overflow-hidden bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
       {/* Left side: Node Details Panel */}
       <NodeInfoPanel />
 
       {/* Middle: Canvas */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative shadow-inner">
         <Canvas />
       </div>
 
       {/* Right side: Chat Panel */}
-      <div className="w-96 border-l border-gray-200">
+      <div className="w-96">
         <ChatPanel />
       </div>
     </div>
