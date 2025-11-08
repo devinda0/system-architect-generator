@@ -1,12 +1,12 @@
 // API Configuration
 export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
-  TIMEOUT: 30000, // 30 seconds
+  TIMEOUT: 300000, // 30 seconds
 };
 
 export const API_ENDPOINTS = {
   // Chat endpoints
-  CHAT: '/api/chat',
+  CHAT: '/api/designs/context',
   
   // Architecture endpoints
   GENERATE_INITIAL_DESIGN: '/api/architecture/generate',

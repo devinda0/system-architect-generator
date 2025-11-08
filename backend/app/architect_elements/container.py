@@ -104,3 +104,19 @@ class Container(ArchitectureElement):
             "childrens": [child.toJSON() for child in self.childrens],
         })
         return base_json
+    
+
+    def get_structure(self) -> dict[str, Any]:
+        """
+        Get the hierarchical structure of the container and its children.
+
+        Returns:
+            Dictionary representing the structure of the container.
+        """
+        structure = {
+            "name": self.name,
+            "description": self.description,
+            "technologies": self.technologies,
+            "children": [child.get_structure() for child in self.childrens],
+        }
+        return structure

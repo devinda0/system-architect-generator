@@ -59,7 +59,7 @@ export default function Canvas() {
   );
 
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
       <ReactFlow
         nodes={localNodes}
         edges={localEdges}
@@ -69,18 +69,38 @@ export default function Canvas() {
         onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{
+          padding: 0.3,
+          maxZoom: 1,
+        }}
         minZoom={0.1}
-        maxZoom={2}
+        maxZoom={1.5}
+        defaultEdgeOptions={{
+          type: 'smoothstep',
+          animated: true,
+          style: { strokeWidth: 2.5 },
+        }}
       >
-        <Background />
-        <Controls />
+        <Background 
+          gap={20}
+          size={1.5}
+          color="#e0e7ff"
+          className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30"
+        />
+        <Controls 
+          className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg"
+          showInteractive={false}
+        />
         <MiniMap
+          className="bg-white/90 backdrop-blur-sm border-2 border-gray-200 rounded-lg shadow-lg"
           nodeColor={(node) => {
-            if (node.type === 'systemContext') return '#3b82f6';
-            if (node.type === 'container') return '#10b981';
-            if (node.type === 'component') return '#8b5cf6';
+            if (node.type === 'systemContext') return '#6366f1';
+            if (node.type === 'container') return '#f97316';
+            if (node.type === 'component') return '#a855f7';
             return '#6b7280';
           }}
+          maskColor="rgba(0, 0, 0, 0.05)"
+          nodeStrokeWidth={3}
         />
       </ReactFlow>
     </div>

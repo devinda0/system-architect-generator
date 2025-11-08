@@ -7,8 +7,16 @@ REST API endpoints for the AI Design Engine.
 from fastapi import APIRouter, HTTPException, Depends, status
 from typing import Dict, Any
 import logging
+from pydantic import BaseModel
 
 from app.services.design_engine_service import DesignEngineService
+from app.chains.get_context import GetContextChain
+
+
+class ContextRequest(BaseModel):
+    """Request model for context update."""
+    current_context: Dict[str, Any] = {}
+    query: str
 from app.services.knowledge_base_service import KnowledgeBaseService
 from app.schemas.design_schemas import (
     InitialDesignRequest,
@@ -541,4 +549,48 @@ async def update_design_element(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update element: {str(e)}"
         )
+
+
+@router.post(
+    "/context",
+    response_model=Dict[str, Any],
+    summary="Get Design Context",
+    description="Get context information for a design query"
+)
+async def get_design_context(
+    request: ContextRequest,
+) -> Dict[str, Any]:
+    """
+    Get design context information.
+    
+    This endpoint provides context information for a given query
+    to help in designing system architecture.
+    
+    Args:
+        request: Context request containing the query
+        
+    Returns:
+        Dictionary containing context information including:
+        - name: system context name
+        - description: system context description
+        - childrens: list of containers with their components
+    """
+    
+    try:
+        logger.info(f"Getting context for query: {request.query}")
+        
+        # Initialize the context chain
+        context_chain = GetContextChain()
+        
+        # Get context using the chain
+        result = await context_chain.get_context(request.query, request.current_context)
+        
+        logger.info("Context retrieved successfully")
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error getting context: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 
