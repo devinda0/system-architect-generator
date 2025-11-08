@@ -23,8 +23,10 @@ RUN pip install --no-cache-dir --prefer-binary -r requirements.txt
 
 # Copy application code
 COPY ./app ./app
-COPY ./docs ./docs
-COPY ./scripts ./scripts
+
+# Copy optional directories if they exist (docs and scripts are not required for runtime)
+# COPY ./docs ./docs
+# COPY ./scripts ./scripts
 
 # Create a non-root user
 RUN useradd -m -u 1000 appuser && \
